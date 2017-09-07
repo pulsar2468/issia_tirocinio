@@ -1,0 +1,92 @@
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'weather/bootstrap.css' %}" />
+<!-- Add custom CSS here -->
+<link rel="stylesheet" type="text/css" href="{% static '/weather/slidefolio.css' %}" />
+<link rel="stylesheet" type="text/css" href="{% static '/weather/btns.min.css' %}" />
+<title>Learn</title>
+    
+ 
+<script type="text/javascript" async
+src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML">
+</script>
+
+ <!-- Header Area -->
+    <div class="headerLearn">
+      <p class="learnTitle"> Learn </p>
+    </div>
+    
+    <!-Header Area -->
+
+<body>
+
+<div class="row top-first-buffer">
+<div class="col-md-6 col-xs-6 center-block">What is it??<body-block>On the right, we have the heart of the anemometer (tcrt5000).
+It's an reflective sensor which include an infrared emitter and phototransistor in a leaded
+package which block visible light. 
+The pin D1 listens the current flow in the phototransistor and If the infrared wave
+is reflected a change in the current flow occurs. The resistors are recommended by the manufacturer for optimal operation.
+
+</body-block>
+</div>
+<div class="col-md-6 col-xs-6">
+<img class="tcrt" src="{% static '/weather/schematic.jpg' %}">
+</div>
+</div>
+
+
+<div class="row top-buffer">
+<div class="col-md-6 col-xs-6 center-block">
+<img class="tangential_img" src="{% static '/weather/tangential.gif' %}">
+</div>
+<div class="col-md-6 col-xs-6 center-block">Tangential Speed
+<body-block> 
+$$v=\frac{2\pi r}{T} \implies v=\frac{d\pi}{T} \\ \hspace6ex v=\frac {m}{s} \hspace2ex T=Period \\r=radius \\2r = diameter $$
+Since the formula expresses the speed in meters per second, 
+you need multiplication the result with 3.6. 
+In this way, we obtain the result converts into km/h
+For example: $$ \frac {25m}{s} = \frac {25\frac {1km}{1000m}}{\frac {1h}{3600s}}=90km/h $$ </body-block>
+</div>
+</div>
+
+
+<div class="row top-buffer">
+<div class="col-md-4 col-xs-4 center-block">Explanation
+<body-block> Since the infrared wavelength is between 700 nm and 1 mm (is longer than visible light, 400 nm-700nm) 
+The wave of the emitter infrared will be reflected only by object with same wavelength, in this case white object. 
+We are interest to have two states in way to obtain a dualistic concept. By this paragon, we exploit the boolean logic 1 o 0 
+depending if the wave has been reflected or not. A infrared wave can be reflected only by white object or similar (Silver object)
+instead, it's won't be reflect by black material</body-block></div>
+<div class="col-md-4 col-xs-4">
+<img class="img_telegramPage" src="{% static '/weather/wavelength_figure.jpg' %}">
+</div>
+<div class="col-md-4 col-xs-4">
+<img class="img_reflection" src="{% static '/weather/reflection.jpg' %}">
+</div>
+</div>
+</body>
+
+<div class="row top-buffer">
+
+<div class="col-md-6 col-xs-6">
+    <video controls class="embed-responsive-item video_weather">
+        <source src="{% static '/weather/240p_video.mp4' %}" type="video/mp4">
+    </video>
+</div>
+
+<div class="col-md-6 col-xs-6 center-block">Title
+<body-block> 
+</body-block>
+</div>
+</div>
+
+
+       
+<footer>
+  <div class="container">
+    <div class="row">
+      <div class="col-md-6 col-md-offset-3 text-center">
+       <h2>Thank You</h2>
+      </div>
+    </div>
+  </div>
+</footer>

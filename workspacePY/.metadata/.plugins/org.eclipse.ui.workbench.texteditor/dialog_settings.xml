@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<section name="Workbench">
+	<section name="org.eclipse.ui.texteditor.templates.TemplatePreferencePage$EditTemplateDialog_dialogBounds">
+		<item value="606" key="DIALOG_WIDTH"/>
+		<item value="1|San Francisco Text|11.0|0|GTK|1|" key="DIALOG_FONT_NAME"/>
+		<item value="371" key="DIALOG_HEIGHT"/>
+		<item value="182" key="DIALOG_X_ORIGIN"/>
+		<item value="29" key="DIALOG_Y_ORIGIN"/>
+	</section>
+	<section name="org.eclipse.ui.texteditor.FindReplaceDialog">
+		<item value="false" key="isRegEx"/>
+		<item value="img" key="selection"/>
+		<item value="false" key="casesensitive"/>
+		<item value="false" key="incremental"/>
+		<item value="true" key="wrap"/>
+		<item value="false" key="wholeword"/>
+		<list key="findhistory">
+			<item value="img"/>
+			<item value="button_index"/>
+			<item value="btn"/>
+			<item value="button-index"/>
+			<item value="services"/>
+			<item value="footer"/>
+			<item value="form-control"/>
+			<item value="login"/>
+		</list>
+		<list key="replacehistory">
+		</list>
+	</section>
+	<section name="org.eclipse.ui.texteditor.FindReplaceDialog_dialogBounds">
+		<item value="321" key="DIALOG_WIDTH"/>
+		<item value="1|San Francisco Text|11.0|0|GTK|1|" key="DIALOG_FONT_NAME"/>
+		<item value="429" key="DIALOG_HEIGHT"/>
+		<item value="876" key="DIALOG_X_ORIGIN"/>
+		<item value="105" key="DIALOG_Y_ORIGIN"/>
+	</section>
+</section>

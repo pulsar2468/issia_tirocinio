@@ -1,0 +1,81 @@
+4/9/2017
+
+Frequenza di aggiornamento in un secondo (Wemos)
+
+c=230349 9600 (baudrate=bit/s in questo caso)
+c=230369 57600
+c=230478 115200
+c=cicli al secondo(normale contare stoppato ad 1 secondo)
+
+baud rate maggiori non sono supportati ( instabile )
+
+problema!
+80 mhz processore -> 80 000 000 di cicli al secondo (operazioni)
+230 khz					230 349 cicli al secondo
+
+la chiamata della funzione loop dal main è onerosa, pertanto ho inserito un for(;;) dentro il loop in modo da temporizzare correttamente il valore atteso. 
+dopo la modifica, adesso siamo sui 588 - 630 khz
+Connessione di un generatore di tensione tramite la porta analogica a0 wemos e lettura dei valori (range 0 1023) con diverse frequenze. Simulazione di un multimetro tramite wemos, calcolando valore medio e valore di efficienza.
+---------------------------------------------------------------
+5/9/2017
+
+Comunicazione wireless stabilita tra wemos e webserver
+Lettura su porta analogica a0 del segnale dato dal generatore di tensione
+test con gli interupt (timer0).
+
+Test Http response ( in millisecondi ) get con due valori double
+
+50.00
+45.00
+10.00
+21.00
+9.00
+10.00
+39.00
+9.00
+11.00
+10.00
+9.00
+34.00
+10.00
+11.00
+
+il tempo è stato misurato tra la get e la risposta del server.
+Utilizzando il broker mosquitto mqtt, troviamo che tutti i tempi sono
+approssimativ. di 2 millisecondi (Senza abbattere la connessione e senza verificare che il pacchetto sia effettivamente arrivato al server, con un qos 0).
+
+------------------------------------------------------------------------
+
+
+6/9/2017
+
+Test packets mqtt (test sulla dispersione dei pacchetti con/senza antenna
+1000 pacchetti inviati dalla wemos al broker. legenda=inviati/ricevuti
+
+Senza antenna
+Distanza ravvicinata ( circa 20 30 cm )
+1000/1000
+distanza media (20 m , piano inferiore)
+1000/1000
+distanza elevata (35 m)
+1000/1000
+N.B al variare della distanza, la frequenza di ricezione lato client viene diminuita. Questo per via del dispositivo che abbassa la frequenza in modo tale da migliorare la qualita del segnale.
+
+Con antenna ( da saldare )
+Distanza ravvicinata ( circa 20 30 cm )
+
+distanza media ()
+
+distanza elevata ()
+
+La wemos si comporta in modo eccellente anche senza antenna esterna.
+
+Implementato un multimetro digitale con il calcolo delle varie potenze ( istantanea, attiva apparente reattiva ) calcolo del periodo e della frequenza. I risultati sono molto gradevoli. Lato wemos i calcoli sono effettuati considerando l'offset, visto che non posso ricevere segnali negativi ( solo onde sinusoidali sopra lo 0 ). Tuttavia nel codice è stata implementata anche la parte in cui dovesse gestire un signale sinusoidale comleto (picco positivo/negativo)
+
+
+7/9/2017
+
+
+
+
+
