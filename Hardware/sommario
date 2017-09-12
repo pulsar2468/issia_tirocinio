@@ -96,4 +96,11 @@ Test micros vs GetCyclecount();
 Utilizzo oscilloscopio per la comparazione dei risultati
 
 
+12/09/2017
+
+Modifica della funzione sull'acquisizione della frequenza
+range prima della modifica  99.97 - 100.54 ( media 100.4266 )
+range dopo la modifica 		99.49 - 100.26 ( media 100.0805 ) media migliore
+
+ 
 

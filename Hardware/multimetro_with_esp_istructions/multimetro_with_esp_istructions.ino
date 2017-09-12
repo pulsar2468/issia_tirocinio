@@ -50,31 +50,17 @@ void setup() {
 
 
 void loop() {
-  initialMillis = micros();
+
+  ESP.wdtEnable(0);
+
+ 
+  initialMillis=ESP.getCycleCount();
+
   for (i = 0; i < point; i++) {
-    delta_t = micros() - initialMillis;
-
-
-    if (delta_t <= t_sample_us) { //t_sample_us!
-      delayMicroseconds(t_sample_us - delta_t);
-      initialMillis = micros();
-      v[i] = (analogRead(A0));
-      interrupts();
-    }
-
-    else  {
-      Serial.println("task overrun");
-
-      delay(1);
-      initialMillis = micros();
-          initialMillis=ESP.getCycleCount();
-
-    }
-
-    
-
-    //delayMicroseconds(t_sample_us);
-
+    delta_t = ESP.getCycleCount() - initialMillis;
+    delayMicroseconds(t_sample_us - (delta_t/150.45));
+    initialMillis=ESP.getCycleCount();
+    v[i] = (analogRead(A0));
   }
 
 
@@ -112,7 +98,7 @@ void loop() {
   frequency();
   T = (id[1] - id [0]) * (t_sample_us) * 1e-6;
   //Serial.println(T,5);
-  //Serial.print("Frequency: ");
+  Serial.print("Frequency: ");
   Serial.println(1.0 / T, 5);
 
   //clear variables
@@ -122,9 +108,10 @@ void loop() {
   //Serial.println(id[0]);
   //Serial.print("Range: ");
   //Serial.println(id[1] - id[0]);
-  //Serial.println((T / 0.01 -1)*100);
+  //SSerial.println((T / 0.01 -1)*100);
   //for (i=0;i<point;i++) if (id[1] - id[0]!=25 && id[0] > 25) Serial.println(v_ac[i]);
 
-  delay(1);
+  
   //Serial.println(millis() - initialMillis);
+  delay(1);
 }
