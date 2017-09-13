@@ -1,5 +1,9 @@
 #include <Wire.h>
+#include <Arduino.h>
+
 unsigned char data;
+
+
 
 void setup()
 {
@@ -17,6 +21,7 @@ void setup()
   WriteRTCByte(0,0x80);    //START RTC, SECOND=00
   delay(100);
 }
+
 
 void loop(){
  //uint8 sec = ((x & B01110000) >> 4) * 10 + ((x & B00001111));
