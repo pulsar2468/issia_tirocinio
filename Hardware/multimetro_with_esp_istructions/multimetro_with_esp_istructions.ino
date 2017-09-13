@@ -1,3 +1,4 @@
+
 double finalMillis;
 double initialMillis = 0;
 int count = 0;
@@ -100,6 +101,7 @@ void loop() {
   //Serial.println(T,5);
   Serial.print("Frequency: ");
   Serial.println(1.0 / T, 5);
+  //Serial.println(ESP.getCpuFreqMHz());
 
   //clear variables
   sum = 0;
