@@ -2,37 +2,25 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 #include <Wire.h>
+#include "rtcc.h"
 
 //web-server and broker mqtt
-const char* ssid = "test1";
-const char* password = "magic";
-const char* mqtt_server = "10.42.0.1";
+const char *ssid = "test1", *password = "magic", *mqtt_server = "10.42.0.1";
 WiFiClient espClient;
 PubSubClient client(espClient);
-char msg[50];
 String output_value;
-unsigned char data; //to set the registry
+char copy[100];
 
 //logical computational
-double finalMillis;
-double initialMillis = 0;
-int count = 0;
-double sum = 0.0, f;
-double v[1000];
-double current[1000], p[1000];
-double id[2];
-int i;
-double T = 0.0, sum_t;
-int point = 1000;
-double value_m, value_m_of_p;
-double value_e, value_a, value_q;
+double finalMillis, initialMillis = 0, sum = 0.0, f;
+double v[1000], current[1000], p[1000], v_ac[1000];
+double id[2], T = 0.0, sum_t;
+double value_m, value_m_of_p, value_e, value_a, value_q;
 double sum_square = 0.0, delta_t = 0.0;
-int flag = 0;
-double v_ac[1000];
-int signs[1000];
+int flag = 0, i, signs[1000], point = 1000; 
 #define t_sample_us 500
-//String data_string;
 
+rtcc x = rtcc(); //istance of class rtcc (external clock)
 
 //wave frequency
 void frequency() {
@@ -47,8 +35,8 @@ void frequency() {
       return;
     }
     if (signs[i] == 0) {
-      if (signs[i + 1] == 1) {               
-        id[flag] =  v_ac[i+1]/(v_ac[i]-v_ac[i+1]) +i+1;
+      if (signs[i + 1] == 1) {
+        id[flag] =  v_ac[i + 1] / (v_ac[i] - v_ac[i + 1]) + i + 1;
         flag++;
       }
     }
@@ -59,24 +47,24 @@ void frequency() {
 void setup() {
   //pinMode(BUILTIN_LED, OUTPUT);     // Initialize the BUILTIN_LED pin as an output
   Serial.begin(115200);
-  Wire.begin();
+  Wire.begin(115200);
   setup_wifi();
   client.setServer(mqtt_server, 8883); //set Server mqtt on port 8883
   //client.setCallback(callback);
+
+  //Set the RTC, once connect to the server, i will get the date (not finished)
+  x.WriteRTCByte(0, 0);      //STOP RTC
+  x.WriteRTCByte(1, 0);   //minute 0
+  x.WriteRTCByte(2, 0x17);   //HOUR
+  x.WriteRTCByte(3, 0x10);   //DAY=1(MONDAY) AND VBAT=1
+  x.WriteRTCByte(4, 0x10);   //DATE
+  x.WriteRTCByte(5, 0x12);   //MONTH
+  x.WriteRTCByte(6, 0x17);   //YEAR
+  x.WriteRTCByte(0, 0x80);   //START RTC, SECOND=00
   
-  //Set the RTC, once connect to the server, i will get the date (not finished)   
-  WriteRTCByte(0,0);       //STOP RTC
-  WriteRTCByte(1,0);    //minute 0
-  WriteRTCByte(2,0x17);    //HOUR
-  WriteRTCByte(3,0x10);    //DAY=1(MONDAY) AND VBAT=1
-  WriteRTCByte(4,0x10);    //DATE
-  WriteRTCByte(5,0x12);    //MONTH
-  WriteRTCByte(6,0x17);    //YEAR
-  WriteRTCByte(0,0x80);    //START RTC, SECOND=00
-  
-  WiFi.mode(WIFI_STA); // only station!
+  WiFi.mode(WIFI_STA); // only station, it doesn't initialize a AP!
   delay(100);
-  }
+}
 
 
 void setup_wifi() {
@@ -93,7 +81,7 @@ void setup_wifi() {
     delay(500);
     Serial.print(".");
   }
-  
+
   Serial.println("");
   Serial.println("WiFi connected");
   Serial.println("IP address: ");
@@ -101,7 +89,7 @@ void setup_wifi() {
 }
 
 
-//bind to broker mosquitto
+//binding to broker mosquitto
 void reconnect() {
   while (!client.connected()) {
     Serial.print("Attempting MQTT connection...");
@@ -119,75 +107,18 @@ void reconnect() {
   }
 }
 
-// Called to write bytes to RTC
-void WriteRTCByte(const unsigned char adr, const unsigned char data){
-  Wire.beginTransmission(0x6f);
-  Wire.write(adr);
-  Wire.write(data);
-  Wire.endTransmission();
-}
-
-// Called to read bytes from RTC
-  unsigned char ReadRTCByte(const unsigned char adr){
-  unsigned char data;
-  Wire.beginTransmission(0x6f);
-  Wire.write(adr);
-  Wire.endTransmission();
-  Wire.requestFrom(0x6f,1);
-  while (Wire.available()) data=Wire.read();
-  return data;
-}
-
-//Function for Rtcc
-String rtcTime() { 
-  data=ReadRTCByte(2); // get hours from rtc
-  int hour=data & 0xff>>(2);
-  data=ReadRTCByte(1); // get minutes from rtc
-  int minute=data & 0xff>>(1);
-  data=ReadRTCByte(0); // get seconds from rtc
-  int second=data & 0xff>>(1);
-  String rtcTime;
-  if (hour < 10){rtcTime += "0";} 
-  rtcTime += String(hour,HEX);
-  rtcTime += ":";  
-  if (minute < 10){rtcTime += "0";} 
-  rtcTime += String(minute,HEX);  
-  rtcTime += ":";  
-  if (second < 10){rtcTime += "0";} 
-  rtcTime += String(second,HEX);
-  return rtcTime;  
-}
-
-// Return the date as a string in format dd:mm:yy
-String rtcDate() { 
-  data=ReadRTCByte(4); // get day from rtc
-  int day=data & 0xff>>(2);
-  data=ReadRTCByte(5); // get month from rtc
-  int month=data & 0xff>>(3);
-  data=ReadRTCByte(6); // get year from rtc
-  int year=data & 0xff>>(0);
-  //build date string
-  String rtcDate;
-  rtcDate += String(day,HEX);
-  rtcDate += ":";  
-  rtcDate += String(month,HEX);  
-  rtcDate += ":";  
-  rtcDate += String(year,HEX);
-  return rtcDate;  
-}
-
 
 void loop() {
 
   ESP.wdtEnable(0); // disable watchdog to prevent wdt.rest for false deadlock
 
-  initialMillis=ESP.getCycleCount();
+  initialMillis = ESP.getCycleCount();
 
   //To get analog read
   for (i = 0; i < point; i++) {
     delta_t = ESP.getCycleCount() - initialMillis;
-    delayMicroseconds(t_sample_us - (delta_t/150.45));
-    initialMillis=ESP.getCycleCount();
+    delayMicroseconds(t_sample_us - (delta_t / 150.45));
+    initialMillis = ESP.getCycleCount();
     v[i] = (analogRead(A0));
   }
 
@@ -213,7 +144,7 @@ void loop() {
 
   //medium value of p
   for (i = 0; i < point; i++) {
-  sum += p[i];
+    sum += p[i];
   }
 
   value_m_of_p = sum / point;
@@ -223,19 +154,19 @@ void loop() {
   frequency();
   T = (id[1] - id [0]) * (t_sample_us) * 1e-6;
   //Serial.println(T,5);
-  output_value = "Frequency: " + String(1.0/T,6) + '\n' + "Period: " + String(T,6) + '\n'
-  + "Average_value: " + String(value_m,6) + '\n' + + "Effective_value: " + String(value_e,6) +
-  "\n\n\n";
-  Serial.print(output_value);
+
+  output_value = x.rtcDate() + ' ' + x.rtcTime() + ' ' + String(1.0 / T, 6) + ' ' + String(T, 6) + ' '
+                 + String(value_m, 6) + ' ' + String(value_e, 6) + ' ';
+  //Serial.print(output_value);
 
   //clear variables
   sum = 0;
   sum_square = 0;
 
-  if (!client.connected()) { 
+  if (!client.connected()) {
     reconnect(); // reconnect to server mqtt
   }
-
-  //Serial.println(client.publish("wemos0/dht11", "ciao",0)); //publish value into mqtt broker
+  output_value.toCharArray(copy,100);
+  client.publish("wemos0/dht11", copy, 0); //publish value into mqtt broker
   delay(1);
 }
