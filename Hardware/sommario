@@ -106,4 +106,13 @@ Protocollo i2c per la comunicazione tra circuiti integrati ( mediante la libreri
  
 13/09/2017
 
-Acquisizione ora e data mediante oscillatore esterno ( codifica bcd )
+Acquisizione ora e data mediante oscillatore esterno ( codifica bcd ).
+Discussione su dettagli tecnici legati alla comunicazione col server mqtt (moquitto)
+Disattivazione funzionalità webServer (lato wemos), in tal modo si comporta da station e non da Access Point (non ascolta su nessun canale escluso quello alla quale mi connetto)
+
+14/09/2017
+
+Pulizia codice, creazione classe rtcc ( header ) + funzioni (cpp file), integrazione nel codice principale.
+Comunicazione wemos client.py stabilita nuovamente, con le relative acquisizioni dei parametri letti dalla board. Consultazione multiplexer.
+Integrazione WifiClient + rtcc + funzionalità_multimetro + comunicazioneMqtt
+

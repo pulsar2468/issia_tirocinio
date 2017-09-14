@@ -1,7 +1,9 @@
+#include <DHT.h>
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 #include <Wire.h>
+
 #include "rtcc.h"
 
 //web-server and broker mqtt
@@ -21,6 +23,7 @@ int flag = 0, i, signs[1000], point = 1000;
 #define t_sample_us 500
 
 rtcc x = rtcc(); //istance of class rtcc (external clock)
+DHT dht(D4, DHT22);
 
 //wave frequency
 void frequency() {
@@ -47,7 +50,8 @@ void frequency() {
 void setup() {
   //pinMode(BUILTIN_LED, OUTPUT);     // Initialize the BUILTIN_LED pin as an output
   Serial.begin(115200);
-  Wire.begin(115200);
+  Wire.begin(222);
+  dht.begin();
   setup_wifi();
   client.setServer(mqtt_server, 8883); //set Server mqtt on port 8883
   //client.setCallback(callback);
@@ -166,6 +170,8 @@ void loop() {
   if (!client.connected()) {
     reconnect(); // reconnect to server mqtt
   }
+  Serial.print("Temperature: ");
+  Serial.println((float)dht.readTemperature(), 2);
   output_value.toCharArray(copy,100);
   client.publish("wemos0/dht11", copy, 0); //publish value into mqtt broker
   delay(1);
