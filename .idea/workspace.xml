@@ -20,7 +20,7 @@
         <entry file="file://$PROJECT_DIR$/mqtt_client/store_it.py">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="0">
-              <caret line="0" column="31" lean-forward="true" selection-start-line="0" selection-start-column="7" selection-end-line="0" selection-end-column="31" />
+              <caret line="0" column="31" lean-forward="false" selection-start-line="0" selection-start-column="7" selection-end-line="0" selection-end-column="31" />
               <folding>
                 <marker date="1505380002311" expanded="true" signature="963:1009" ph="INSERT INTO " />
               </folding>
@@ -53,9 +53,6 @@
   <component name="JsGulpfileManager">
     <detection-done>true</detection-done>
     <sorting>DEFINITION_ORDER</sorting>
-  </component>
-  <component name="NodeModulesDirectoryManager">
-    <handled-path value="$PROJECT_DIR$/workspacePY/.metadata/.plugins/ts.eclipse.ide.server.nodejs.embed.linux.gtk.x86_64/node-v6.9.4-linux-x64/lib/node_modules" />
   </component>
   <component name="ProjectFrameBounds">
     <option name="y" value="24" />
@@ -346,7 +343,7 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="0" y="24" width="1366" height="744" extended-state="1" />
+    <frame x="0" y="24" width="1366" height="744" extended-state="0" />
     <editor active="true" />
     <layout>
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.119119875" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
@@ -652,7 +649,7 @@
     <entry file="file://$PROJECT_DIR$/mqtt_client/store_it.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
-          <caret line="0" column="31" lean-forward="true" selection-start-line="0" selection-start-column="7" selection-end-line="0" selection-end-column="31" />
+          <caret line="0" column="31" lean-forward="false" selection-start-line="0" selection-start-column="7" selection-end-line="0" selection-end-column="31" />
           <folding>
             <marker date="1505380002311" expanded="true" signature="963:1009" ph="INSERT INTO " />
           </folding>
