@@ -28,13 +28,13 @@ void setup()
 
 void loop()
 {
-  static bool first_time = true;
-  static unsigned long initial_time_us, start_time_us, stop_time_us;
   static byte msg[] = {0xF5, 0x99, 0xAB}; //to be changed
+  static bool first_time = true;
+  static char mybuffer[55]; //a buffer to build formatted strings
+  static unsigned long initial_time_us, start_time_us, stop_time_us;
 
   static struct config_data_t config_data = {0xF5, 33, 'O', 192, 168, 0, 200,
-    0x17, 0x09, 0x25, 0x10, 0x30, 0x15
-  };
+    0x17, 0x09, 0x25, 0x10, 0x30, 0x15};
   //static byte *aconfig_data = NULL; // aconfig_data is an alias of config_data
   static struct channels_t channels;
   static float *achannels = NULL; // achannels is an alias of channels
@@ -43,18 +43,17 @@ void loop()
 
   //aconfig_data = (byte *) &config_data; // alias of config_data as an array
   achannels = (float *) &channels; // alias of channels as an array
-  atxdata = (byte *) &atxdata; // alias of txdata as an array
+  atxdata = (byte *) &txdata; // alias of txdata as an array
 
   //PROGRAMMING MODE
   if (PROGRAM_EEPROM == 1) {
-    //use default config_data
+    //program default config_data in eeprom
     if (program_eeprom(&config_data)) {
       toggle_confirmation_led(PIN_MUX_S1_LED); // do not return
     }
     else {
       toggle_error_led(PIN_MUX_S1_LED); // do not return
     }
-    return;
   }
 
   //NORMAL OPERATION MODE - FIRST CALL
@@ -72,7 +71,7 @@ void loop()
 
     // send welcome msg to broker, containing config_data
     // subscribe to config msgs sent by broker
-    Serial.println("exiting from first-time loop");
+    Serial.println("exiting from first-time loop\n");
     delayMicroseconds(10);
     return;
   }
@@ -84,14 +83,17 @@ void loop()
 
   //STEP 1: check if new msg received
   //get message
-  if (0) {
+  if (MSG_ARRIVED) {
     start_time_us = micros();
     Serial.print("msg received: ");
-    Serial.println(msg[0]);
+    snprintf(mybuffer, sizeof(mybuffer), "0x%02x", msg[0]);
+    Serial.println(mybuffer);
     delayMicroseconds(10);
 
     if (msg[0] == MSG_ID_QUERY_SENSORS) {
       //send welcome msg to broker, containing config_data
+      Serial.println("welcome!");
+      delayMicroseconds(10);
     }
     else if (msg[0] == MSG_ID_CONFIG) {
       //program RTCC
@@ -101,12 +103,14 @@ void loop()
       WriteI2CByte(RTCC_ADDR, 0x04, config_data.dd);
       WriteI2CByte(RTCC_ADDR, 0x02, config_data.hh);
       WriteI2CByte(RTCC_ADDR, 0x01, config_data.mm);
-      WriteI2CByte(RTCC_ADDR, 0x00, config_data.ss || 0x80);  //write seconds and start RTCC
-
+      WriteI2CByte(RTCC_ADDR, 0x00, config_data.ss | 0x80);  //write seconds and start RTCC
+      Serial.println("RTCC programmed");
+      delayMicroseconds(10);
+      
       //store config_data in EEPROM
-      //      if (!program_eeprom(&config_data)) {
-      //        toggle_error_led(PIN_MUX_S1_LED); // do not return
-      //      }
+      if (!program_eeprom(&config_data)) {
+        toggle_error_led(PIN_MUX_S1_LED); // do not return
+      }
     }
     stop_time_us = micros();
     print_elapsed_time("msg processing finished in ", start_time_us, stop_time_us);
@@ -133,10 +137,10 @@ void loop()
     print_elapsed_time("1-Wire acquisition finished in ", start_time_us, stop_time_us);
 
     //acquire I2C data
-//    start_time_us = micros();
-//    channels.ch_i2c = ReadI2CByte(I2C_SENSOR_ADDR, I2C_SENSOR_REG);
-//    stop_time_us = micros();
-//    print_elapsed_time("I2C acquisition finished in ", start_time_us, stop_time_us);
+    start_time_us = micros();
+    channels.ch_i2c = ReadI2CByte(I2C_SENSOR_ADDR, I2C_SENSOR_REG);
+    stop_time_us = micros();
+    print_elapsed_time("I2C acquisition finished in ", start_time_us, stop_time_us);
 
     //acquire SPI data
     start_time_us = micros();
@@ -167,32 +171,33 @@ void loop()
   data = ReadI2CByte(RTCC_ADDR, 0); // get seconds from rtc
   txdata.ss = data & 0xff >> (1);
 
-  int temp = 0xABCDEF37;
-  achannels[0] = *((float *) (&temp));
-  for (int i = 0; i < LEN_CHANNELS; i++) {
-    //store the 4 bytes of the float number
-    atxdata[CH_START_INDEX + 2 * i + 0] = (byte) (int) achannels[i]; //to be fixed
-    atxdata[CH_START_INDEX + 2 * i + 1] = (byte) (int) achannels[i];
-    atxdata[CH_START_INDEX + 2 * i + 2] = (byte) (int) achannels[i];
-    atxdata[CH_START_INDEX + 2 * i + 3] = (byte) (int) achannels[i];
+  { // to be removed
+    int temp = 0x3F9E0652;
+    achannels[0] = *((float *) (&temp)); //1.2345678806304931640625
   }
-
-  Serial.println(atxdata[9]);
-  Serial.println(atxdata[10]);
-  Serial.println(atxdata[11]);
-  Serial.println(atxdata[12]);
+  int *pint = NULL;
+  for (int i = 0; i < LEN_CHANNELS; i++) {
+    //store the 4 bytes of the float number consecutively
+    pint = (int *) &achannels[i];
+    // byte order is big endian
+    atxdata[CH_START_INDEX + 4 * i + 0] = (byte) ((*pint & 0xFF000000) >> 24);
+    atxdata[CH_START_INDEX + 4 * i + 1] = (byte) ((*pint & 0x00FF0000) >> 16);
+    atxdata[CH_START_INDEX + 4 * i + 2] = (byte) ((*pint & 0x0000FF00) >> 8);
+    atxdata[CH_START_INDEX + 4 * i + 3] = (byte) ((*pint & 0x000000FF) >> 0);
+  }
 
   stop_time_us = micros();
   print_elapsed_time("data preparing finished in ", start_time_us, stop_time_us);
 
   //STEP 4: send TxData to broker
   start_time_us = micros();
-  //... LEN_TXDATA bytes
+  //... send LEN_TXDATA bytes
   for (int i = 0; i < LEN_TXDATA - 1; i++) {
-    Serial.print(atxdata[i]);
-    Serial.print(" - ");
+    snprintf(mybuffer, sizeof(mybuffer), "0x%02x, ", atxdata[i]);
+    Serial.print(mybuffer);
   }
-  Serial.println(atxdata[LEN_TXDATA - 1]);
+  snprintf(mybuffer, sizeof(mybuffer), "0x%02x\n", atxdata[LEN_TXDATA - 1]);
+  Serial.print(mybuffer);
   delayMicroseconds(10);
   stop_time_us = micros();
   print_elapsed_time("sending msg finished in ", start_time_us, stop_time_us);
@@ -200,7 +205,17 @@ void loop()
   //print total time
   stop_time_us = micros();
   print_elapsed_time("loop iteration finished in ", initial_time_us, stop_time_us);
-  Serial.println(" ");
-  delayMicroseconds(1000000);
+  Serial.println();
+
+  long deltaT = TLOOP_US - (micros() - initial_time_us);
+  if (deltaT > 0) {
+    delayMicroseconds(deltaT);
+  }
+  else {
+    snprintf(mybuffer, sizeof(mybuffer), "cannot finish loop within %d us. system halted.", TLOOP_US);
+    Serial.println(mybuffer);
+    delayMicroseconds(10);
+    while(1);   
+  }
 }
 
