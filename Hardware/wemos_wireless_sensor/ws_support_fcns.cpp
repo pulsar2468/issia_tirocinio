@@ -2,6 +2,7 @@
 
 #include "ws_support_fcns.h"
 #include <Arduino.h>
+#include <SPI.h>
 #include <Wire.h>
 
 
@@ -15,6 +16,8 @@ void read_config_data_from_eeprom(struct config_data_t *config_data) {
   config_data->IPaddr_2 = ReadI2CByte(EEPROM_ADDR, 0x04);
   config_data->IPaddr_1 = ReadI2CByte(EEPROM_ADDR, 0x05);
   config_data->IPaddr_0 = ReadI2CByte(EEPROM_ADDR, 0x06);
+  config_data->IPport_1 = ReadI2CByte(EEPROM_ADDR, 0x07);
+  config_data->IPport_0 = ReadI2CByte(EEPROM_ADDR, 0x08);
   config_data->yy = 0;
   config_data->mth = 0;
   config_data->dd = 0;
@@ -54,14 +57,10 @@ bool program_eeprom(struct config_data_t *config_data) {
 // Called to read bytes from I2C
 unsigned char ReadI2CByte(const unsigned char addr, const unsigned char reg) {
   unsigned char data;
-  unsigned long start_time;
 
-  byte rdata = 0xFF;
   Wire.beginTransmission(addr);
   Wire.write(reg);
   Wire.endTransmission();
-
-  delayMicroseconds(2);
 
   Wire.requestFrom(addr, 1);  // check this for overloading
   while (Wire.available()) {
@@ -69,6 +68,7 @@ unsigned char ReadI2CByte(const unsigned char addr, const unsigned char reg) {
     data = Wire.read();
     //Serial.println(data);
   }
+  delayMicroseconds(2);
   return data;
 }
 
@@ -112,47 +112,47 @@ void set_mux_ch(unsigned int ch) {
   switch (ch) {
     case 0:
       digitalWrite(PIN_MUX_S0, LOW);
-      digitalWrite(PIN_MUX_S1_LED, LOW);
+      digitalWrite(PIN_MUX_S1, LOW);
       digitalWrite(PIN_MUX_S2_SPI_SSn, LOW);
       break;
     case 1:
       digitalWrite(PIN_MUX_S0, HIGH);
-      digitalWrite(PIN_MUX_S1_LED, LOW);
+      digitalWrite(PIN_MUX_S1, LOW);
       digitalWrite(PIN_MUX_S2_SPI_SSn, LOW);
       break;
     case 2:
       digitalWrite(PIN_MUX_S0, LOW);
-      digitalWrite(PIN_MUX_S1_LED, HIGH);
+      digitalWrite(PIN_MUX_S1, HIGH);
       digitalWrite(PIN_MUX_S2_SPI_SSn, LOW);
       break;
     case 3:
       digitalWrite(PIN_MUX_S0, HIGH);
-      digitalWrite(PIN_MUX_S1_LED, HIGH);
+      digitalWrite(PIN_MUX_S1, HIGH);
       digitalWrite(PIN_MUX_S2_SPI_SSn, LOW);
       break;
     case 4:
       digitalWrite(PIN_MUX_S0, LOW);
-      digitalWrite(PIN_MUX_S1_LED, LOW);
+      digitalWrite(PIN_MUX_S1, LOW);
       digitalWrite(PIN_MUX_S2_SPI_SSn, HIGH);
       break;
     case 5:
       digitalWrite(PIN_MUX_S0, HIGH);
-      digitalWrite(PIN_MUX_S1_LED, LOW);
+      digitalWrite(PIN_MUX_S1, LOW);
       digitalWrite(PIN_MUX_S2_SPI_SSn, HIGH);
       break;
     case 6:
       digitalWrite(PIN_MUX_S0, LOW);
-      digitalWrite(PIN_MUX_S1_LED, HIGH);
+      digitalWrite(PIN_MUX_S1, HIGH);
       digitalWrite(PIN_MUX_S2_SPI_SSn, HIGH);
       break;
     case 7:
       digitalWrite(PIN_MUX_S0, HIGH);
-      digitalWrite(PIN_MUX_S1_LED, HIGH);
+      digitalWrite(PIN_MUX_S1, HIGH);
       digitalWrite(PIN_MUX_S2_SPI_SSn, HIGH);
       break;
     default:
       digitalWrite(PIN_MUX_S0, LOW);
-      digitalWrite(PIN_MUX_S1_LED, LOW);
+      digitalWrite(PIN_MUX_S1, LOW);
       digitalWrite(PIN_MUX_S2_SPI_SSn, LOW);
       break;
   }
@@ -371,9 +371,7 @@ String rtcTime(void) {
 
 void timeStamp(void) {
   Serial.print(rtcDate());
-  delayMicroseconds(10);
   Serial.print("  -  ");
-  delayMicroseconds(10);
   Serial.println(rtcTime());
   delayMicroseconds(10);
 }
@@ -386,3 +384,16 @@ void print_elapsed_time(String msg, unsigned long start_time_us, unsigned long s
   Serial.println(" us");
   delayMicroseconds(10);
 }
+
+//*****************************************************************************
+
+void spiWrite(byte value) {
+  // take the SS pin low to select the chip:
+  digitalWrite(PIN_MUX_S2_SPI_SSn, LOW);
+  //  send in the address and value via SPI:
+  //SPI.transfer(address);
+  SPI.transfer(value);
+  // take the SS pin high to de-select the chip:
+  digitalWrite(PIN_MUX_S2_SPI_SSn, HIGH);
+}
+

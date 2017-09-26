@@ -1,6 +1,7 @@
 //wemos_wireless_sensor.ino
 
 #include "ws_support_fcns.h"
+#include <SPI.h>
 #include <Wire.h>
 #include "DHT.h"
 #define DHTTYPE DHT22
@@ -12,7 +13,7 @@ void setup()
   Serial.begin(115200);
   //setup GPIO pins
   pinMode(PIN_MUX_S0, OUTPUT);
-  pinMode(PIN_MUX_S1_LED, OUTPUT);
+  pinMode(PIN_MUX_S1, OUTPUT);
   pinMode(PIN_MUX_S2_SPI_SSn, OUTPUT);
   //setup 1-Wire
   dht.begin();
@@ -20,21 +21,23 @@ void setup()
   Wire.setClock(400000);
   Wire.begin();
   //setup SPI master
-  pinMode(PIN_SPI_SCLK, OUTPUT);
-  pinMode(PIN_SPI_MISO, INPUT);
-  pinMode(PIN_SPI_MOSI, OUTPUT);
+//  pinMode(PIN_SPI_SCLK, OUTPUT);
+//  pinMode(PIN_SPI_MISO, INPUT);
+//  pinMode(PIN_SPI_MOSI, OUTPUT);
   pinMode(PIN_MUX_S2_SPI_SSn, OUTPUT);
+  SPI.begin();
 }
 
 void loop()
 {
+  static bool toggle_flag = false;
   static byte msg[] = {0xF5, 0x99, 0xAB}; //to be changed
   static bool first_time = true;
   static char mybuffer[55]; //a buffer to build formatted strings
   static unsigned long initial_time_us, start_time_us, stop_time_us;
 
-  static struct config_data_t config_data = {0xF5, 33, 'O', 192, 168, 0, 200,
-    0x17, 0x09, 0x25, 0x10, 0x30, 0x15};
+  static struct config_data_t config_data = {0xF5, 33, 'E', 150, 145, 127, 37,
+    0x22, 0xB3, 0x17, 0x09, 0x26, 0x10, 0x30, 0x15};
   //static byte *aconfig_data = NULL; // aconfig_data is an alias of config_data
   static struct channels_t channels;
   static float *achannels = NULL; // achannels is an alias of channels
@@ -49,10 +52,10 @@ void loop()
   if (PROGRAM_EEPROM == 1) {
     //program default config_data in eeprom
     if (program_eeprom(&config_data)) {
-      toggle_confirmation_led(PIN_MUX_S1_LED); // do not return
+      toggle_confirmation_led(PIN_LED); // do not return
     }
     else {
-      toggle_error_led(PIN_MUX_S1_LED); // do not return
+      toggle_error_led(PIN_LED); // do not return
     }
   }
 
@@ -64,15 +67,17 @@ void loop()
       if (config_data.cmd != MSG_ID_CONFIG) {
         Serial.println("empty EEPROM");
         delayMicroseconds(10);
-        toggle_error_led(PIN_MUX_S1_LED); // do not return
+        toggle_error_led(PIN_LED); // do not return
       }
     }
     // else use config initialization values if DEBUG_WITHOUT_EEPROM = 1
 
     // send welcome msg to broker, containing config_data
     // subscribe to config msgs sent by broker
-    Serial.println("exiting from first-time loop\n");
-    delayMicroseconds(10);
+    if (VERBOSE) {
+      Serial.println("exiting from first-time loop\n");
+      delayMicroseconds(10);
+    }
     return;
   }
 
@@ -109,7 +114,7 @@ void loop()
       
       //store config_data in EEPROM
       if (!program_eeprom(&config_data)) {
-        toggle_error_led(PIN_MUX_S1_LED); // do not return
+        toggle_error_led(PIN_LED); // do not return
       }
     }
     stop_time_us = micros();
@@ -117,37 +122,52 @@ void loop()
   }
 
   //STEP 2: acquire data from hw sensors
+  //acquire analog channels
   if (config_data.board_type == 'E') {
+    //acquire ch_0 and ch_1 and compute other quantities
     start_time_us = micros();
     acquire_and_process_analog_channels(&channels);
     stop_time_us = micros();
-    print_elapsed_time("electrical acquisition finished in ", start_time_us, stop_time_us);
+    if (VERBOSE)
+      print_elapsed_time("electrical acquisition finished in ", start_time_us, stop_time_us);
   }
   else {
     //acquire raw analog signals
     start_time_us = micros();
     acquire_raw_analog_channels(&channels);
     stop_time_us = micros();
-    print_elapsed_time("analog ch acquisition finished in ", start_time_us, stop_time_us);
-
-    //acquire 1-Wire data
-    start_time_us = micros();
-    channels.ch_1wire = dht.readTemperature();
-    stop_time_us = micros();
+    if (VERBOSE) 
+      print_elapsed_time("analog ch acquisition finished in ", start_time_us, stop_time_us);
+  }
+  //acquire 1-Wire data
+  start_time_us = micros();
+  channels.ch_1wire = dht.readTemperature(); 
+  stop_time_us = micros();
+  if (VERBOSE)
     print_elapsed_time("1-Wire acquisition finished in ", start_time_us, stop_time_us);
 
-    //acquire I2C data
-    start_time_us = micros();
-    channels.ch_i2c = ReadI2CByte(I2C_SENSOR_ADDR, I2C_SENSOR_REG);
-    stop_time_us = micros();
+  //acquire I2C data
+  start_time_us = micros();
+  channels.ch_i2c = ReadI2CByte(I2C_SENSOR_ADDR, I2C_SENSOR_REG);
+  stop_time_us = micros();
+  if (VERBOSE)
     print_elapsed_time("I2C acquisition finished in ", start_time_us, stop_time_us);
 
-    //acquire SPI data
-    start_time_us = micros();
-    channels.ch_spi = 0.0;  // to be defined
-    stop_time_us = micros();
-    print_elapsed_time("SPI acquisition finished in ", start_time_us, stop_time_us);
+  //acquire SPI data
+  start_time_us = micros();
+  channels.ch_spi = 0.0;  // to be defined
+  {  // to be removed
+    toggle_flag = !toggle_flag;
+    if (toggle_flag) {
+      spiWrite(128);
+    }
+    else {
+      spiWrite(255);    
+    }
   }
+  stop_time_us = micros();
+  if (VERBOSE)
+    print_elapsed_time("SPI acquisition finished in ", start_time_us, stop_time_us);
 
   //STEP 3: retrieve timestamp and prepare data
   byte data;
@@ -187,26 +207,31 @@ void loop()
   }
 
   stop_time_us = micros();
-  print_elapsed_time("data preparing finished in ", start_time_us, stop_time_us);
+  if (VERBOSE)
+    print_elapsed_time("data preparing finished in ", start_time_us, stop_time_us);
 
   //STEP 4: send TxData to broker
   start_time_us = micros();
   //... send LEN_TXDATA bytes
-  for (int i = 0; i < LEN_TXDATA - 1; i++) {
-    snprintf(mybuffer, sizeof(mybuffer), "0x%02x, ", atxdata[i]);
+  if (VERBOSE) {
+    for (int i = 0; i < LEN_TXDATA - 1; i++) {
+      snprintf(mybuffer, sizeof(mybuffer), "0x%02x, ", atxdata[i]);
+      Serial.print(mybuffer);
+    }
+    snprintf(mybuffer, sizeof(mybuffer), "0x%02x\n", atxdata[LEN_TXDATA - 1]);
     Serial.print(mybuffer);
+    delayMicroseconds(10);
   }
-  snprintf(mybuffer, sizeof(mybuffer), "0x%02x\n", atxdata[LEN_TXDATA - 1]);
-  Serial.print(mybuffer);
-  delayMicroseconds(10);
   stop_time_us = micros();
-  print_elapsed_time("sending msg finished in ", start_time_us, stop_time_us);
+  if (VERBOSE)
+    print_elapsed_time("sending msg finished in ", start_time_us, stop_time_us);
 
   //print total time
   stop_time_us = micros();
   print_elapsed_time("loop iteration finished in ", initial_time_us, stop_time_us);
   Serial.println();
 
+  //wait delta time
   long deltaT = TLOOP_US - (micros() - initial_time_us);
   if (deltaT > 0) {
     delayMicroseconds(deltaT);

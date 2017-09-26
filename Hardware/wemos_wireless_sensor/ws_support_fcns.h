@@ -8,7 +8,7 @@
 #define PROGRAM_EEPROM 0
 #define DEBUG_WITHOUT_EEPROM 1
 #define MSG_ARRIVED 0
-#define VERBOSE 1
+#define VERBOSE 0
 #define NSAMPLES 1000
 #define TSAMPLE_US 200
 //sampling freq. is 5 kHz (max 8 kHz)
@@ -22,9 +22,10 @@
 
 //pin definitions
 #define PIN_MUX_S0 D0
-#define PIN_MUX_S1_LED D4
+#define PIN_MUX_S1 D3
 #define PIN_MUX_S2_SPI_SSn D8
-#define PIN_1WIRE D3
+#define PIN_1WIRE D4
+#define PIN_LED D4
 #define PIN_I2C_SCL D1
 #define PIN_I2C_SDA D2
 #define PIN_SPI_SCLK D5
@@ -40,8 +41,8 @@
 
 //type definitions:
 //config data sent by server and stored in EEPROM
-#define LEN_CONFIG_DATA 13
-#define LEN_CONFIG_DATA_EE 7
+#define LEN_CONFIG_DATA 15
+#define LEN_CONFIG_DATA_EE 9
 struct config_data_t {
   byte cmd;
   byte board_id;
@@ -50,6 +51,8 @@ struct config_data_t {
   byte IPaddr_2;
   byte IPaddr_1;
   byte IPaddr_0;
+  byte IPport_1;
+  byte IPport_0;
   byte yy;
   byte mth;
   byte dd;
@@ -81,7 +84,7 @@ struct channels_t {
 struct txdata_t {
   byte cmd;
   byte board_id;
-  byte board_type;	
+  byte board_type;
   byte yy;
   byte mth;
   byte dd;
@@ -118,5 +121,6 @@ String rtcDate(void);
 String rtcTime(void);
 void timeStamp(void);
 void print_elapsed_time(String msg, unsigned long start_time_us, unsigned long stop_time_us);
+void spiWrite(byte value);
 
 #endif /* WS_SUPPORT_FCNS_H_ */
