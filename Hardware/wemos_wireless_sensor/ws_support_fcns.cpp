@@ -216,13 +216,13 @@ void acquire_and_process_analog_channels(struct channels_t *channels) {
     buf0[j] = analogRead(A0);
     set_mux_ch(1);
     delayMicroseconds(1);
-    buf1[j] = analogRead(A0);
+    buf1[j] = analogRead(A0);  
   }
-
+    
   //scale values and compute power and sums
   for (int j = 0; j < NSAMPLES; j++) {
-    v[j] = (float) (buf0[j] - 512) * (3.2 * CALIB_GAIN / 1024);
-    i[j] = (float) (buf1[j] - 512) * (3.2 * CALIB_GAIN / 1024);
+    v[j] = (float) buf0[j] * (3.2 * CALIB_GAIN / 1024);
+    i[j] = (float) buf1[j] * (3.2 * CALIB_GAIN / 1024);
     p[j] = v[j] * i[j];
     sum_v += v[j];
     sum_i += i[j];
@@ -233,7 +233,7 @@ void acquire_and_process_analog_channels(struct channels_t *channels) {
   Vmean = sum_v / NSAMPLES;
   Imean = sum_i / NSAMPLES;
   P = sum_p / NSAMPLES;
-
+  
   //remove mean value and compute sums of squared elements
   for (int j = 0; j < NSAMPLES; j++) {
     v[j] -= Vmean;
@@ -269,7 +269,7 @@ void acquire_and_process_analog_channels(struct channels_t *channels) {
   channels->ch_a6 = T;
   channels->ch_a7 = f;
 
-  if (VERBOSE == 1) {
+  if (1) {
     Serial.print("Vmean: ");
     Serial.println(Vmean, 3);
     Serial.print("Vrms: ");

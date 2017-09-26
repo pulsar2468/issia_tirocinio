@@ -83,9 +83,11 @@ void loop()
 
   //NORMAL OPERATION MODE - SUBSEQUENT CALLS
   initial_time_us = micros();
-  Serial.println("starting loop...");
-  delayMicroseconds(10);
-
+  if (VERBOSE) {
+    Serial.println("starting loop...");
+    delayMicroseconds(10);
+  }
+  
   //STEP 1: check if new msg received
   //get message
   if (MSG_ARRIVED) {
@@ -228,9 +230,11 @@ void loop()
 
   //print total time
   stop_time_us = micros();
-  print_elapsed_time("loop iteration finished in ", initial_time_us, stop_time_us);
-  Serial.println();
-
+  if (VERBOSE) {
+    print_elapsed_time("loop iteration finished in ", initial_time_us, stop_time_us);
+    Serial.println();
+  }
+  
   //wait delta time
   long deltaT = TLOOP_US - (micros() - initial_time_us);
   if (deltaT > 0) {

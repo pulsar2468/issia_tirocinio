@@ -8,7 +8,7 @@
 #define PROGRAM_EEPROM 0
 #define DEBUG_WITHOUT_EEPROM 1
 #define MSG_ARRIVED 0
-#define VERBOSE 0
+#define VERBOSE 1
 #define NSAMPLES 1000
 #define TSAMPLE_US 200
 //sampling freq. is 5 kHz (max 8 kHz)
