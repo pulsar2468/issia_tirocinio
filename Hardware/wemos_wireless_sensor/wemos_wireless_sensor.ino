@@ -1,10 +1,75 @@
-//wemos_wireless_sensor.ino
+
+#include <ESP8266WiFi.h>
+#include <PubSubClient.h>
 
 #include "ws_support_fcns.h"
 #include <Wire.h>
 #include "DHT.h"
 #define DHTTYPE DHT22
 DHT dht(PIN_1WIRE, DHTTYPE);
+const char *ssid = "test1", *password = "magic", *mqtt_server = "150.145.127.37";
+WiFiClient espClient;
+PubSubClient client(espClient);
+static byte msg[] = {0x00, 0x00, 0x00}; //to be changed
+static struct txdata_t txdata;
+static byte *atxdata = NULL; //atxdata is an alias of txdata
+static struct config_data_t config_data;
+static byte *conf = NULL;
+
+
+
+
+void callback(char* topic, byte* payload, unsigned int length) {
+  Serial.print("Message arrived [");
+  Serial.print(topic);
+  Serial.print("] ");
+  for (int i = 0; i < length; i++) {
+    Serial.print((char)payload[i]); // store into byte msg[]
+    conf[i]=(byte)payload[i];
+  }
+  Serial.println();
+}
+
+
+void setup_wifi() {
+
+  delay(10);
+  // We start by connecting to a WiFi network
+  Serial.println();
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
+
+  WiFi.begin(ssid, password);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("");
+  Serial.println("WiFi connected");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
+}
+
+//binding to broker mosquitto
+void reconnect() {
+  while (!client.connected()) {
+    Serial.print("Attempting MQTT connection...");
+    // Attempt to connect
+    if (client.connect("WemosClient", "issia", "cnr")) {
+      Serial.println("connected");
+      client.subscribe("wemos0/config"); //topic
+
+    } else {
+      Serial.print("failed, rc=");
+      Serial.print(client.state());
+      Serial.println(" try again in 5 seconds");
+      // Wait 5 seconds before retrying
+      delay(5000);
+    }
+  }
+}
+
 
 void setup()
 {
@@ -14,36 +79,38 @@ void setup()
   pinMode(PIN_MUX_S0, OUTPUT);
   pinMode(PIN_MUX_S1_LED, OUTPUT);
   pinMode(PIN_MUX_S2_SPI_SSn, OUTPUT);
+  setup_wifi();
+  WiFi.mode(WIFI_STA); // only station, it doesn't initialize a AP!
+  client.setServer(mqtt_server, 8883);
+  client.setCallback(callback);
+
   //setup 1-Wire
   dht.begin();
   //setup I2C
-  Wire.setClock(400000);
   Wire.begin();
   //setup SPI master
   pinMode(PIN_SPI_SCLK, OUTPUT);
   pinMode(PIN_SPI_MISO, INPUT);
   pinMode(PIN_SPI_MOSI, OUTPUT);
   pinMode(PIN_MUX_S2_SPI_SSn, OUTPUT);
+  atxdata = (byte *) &txdata; // alias of txdata as an array
+  config_data = {0xF5, 33, 'O', 192, 168, 0, 200,
+  0x17, 0x09, 0x25, 0x10, 0x30, 0x15};
+  conf = (byte *) &config_data;
 }
 
 void loop()
 {
-  static byte msg[] = {0xF5, 0x99, 0xAB}; //to be changed
   static bool first_time = true;
   static char mybuffer[55]; //a buffer to build formatted strings
   static unsigned long initial_time_us, start_time_us, stop_time_us;
-
-  static struct config_data_t config_data = {0xF5, 33, 'O', 192, 168, 0, 200,
-    0x17, 0x09, 0x25, 0x10, 0x30, 0x15};
+  
   //static byte *aconfig_data = NULL; // aconfig_data is an alias of config_data
   static struct channels_t channels;
   static float *achannels = NULL; // achannels is an alias of channels
-  static struct txdata_t txdata;
-  static byte *atxdata = NULL; //atxdata is an alias of txdata
 
   //aconfig_data = (byte *) &config_data; // alias of config_data as an array
   achannels = (float *) &channels; // alias of channels as an array
-  atxdata = (byte *) &txdata; // alias of txdata as an array
 
   //PROGRAMMING MODE
   if (PROGRAM_EEPROM == 1) {
@@ -197,7 +264,12 @@ void loop()
     Serial.print(mybuffer);
   }
   snprintf(mybuffer, sizeof(mybuffer), "0x%02x\n", atxdata[LEN_TXDATA - 1]);
-  Serial.print(mybuffer);
+  //Serial.print(mybuffer);
+  
+  if (!client.connected()) {
+    reconnect(); // reconnect to server mqtt
+  }
+  client.publish("wemos0/data",mybuffer,0);
   delayMicroseconds(10);
   stop_time_us = micros();
   print_elapsed_time("sending msg finished in ", start_time_us, stop_time_us);

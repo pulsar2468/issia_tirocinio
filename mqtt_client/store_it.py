@@ -2,7 +2,6 @@ import paho.mqtt.client as paho
 import sqlite3
 import datetime
 
-package=0
 
 def on_subscribe(client, userdata, mid, granted_qos):
     print("Subscribed: "+str(mid)+" "+str(granted_qos))
@@ -11,15 +10,16 @@ def on_message(client,userdata,msg):
     print("on_message")
     pass
 
-def store_data(client, userdata, msg):
+def store_data(client, userdata, msg,hostname):
+    print(userdata)
     #global package
     #package=package+1
     #print("Received package",package)
     name_board=(msg.topic).split('/', 1)[0] #I get the name of board
-    date,time,frequency,period,average_value,effective_value=(msg.payload).split()
-    date = date + time
+    date,Vmeans,Vrms,Imeans,Irms,A,P,T,f=(msg.payload).split()
+    #date = date + time
     print(name_board, datetime.datetime.strptime(date.decode("utf-8") ,"%d-%m-%y%H:%M:%S"),
-          float(frequency),float(period),float(average_value),float(effective_value))
+          float(f),float(T),float(Vmeans),float(Vrms))
     #date=(datetime.datetime.now()).strftime("%Y-%m-%d %H:%M:%S")
     #date=(datetime.datetime.now())
 
@@ -33,13 +33,15 @@ def store_data(client, userdata, msg):
     '''
 
 
-
-
-client = paho.Client()
-#client.on_subscribe = on_subscribe
-#client.on_message = on_message
-client.username_pw_set("pulsar", "conoscenza")
-client.message_callback_add("+/dht11", store_data)
-client.connect("10.42.0.1", 8883)
-client.subscribe("+/dht11", qos=0)
-client.loop_forever()
+try :
+    print("Storage module active")
+    client = paho.Client()
+    #client.on_subscribe = on_subscribe
+    #client.on_message = on_message
+    client.username_pw_set("issia", "cnr")
+    client.message_callback_add("+/data", store_data)
+    client.connect("150.145.127.37", 8883)
+    client.subscribe("+/data", qos=0)
+    client.loop_forever()
+except
+    print("Error into Storage module, please restart config_manager")
