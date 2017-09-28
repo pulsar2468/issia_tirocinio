@@ -163,35 +163,35 @@ void set_mux_ch(unsigned int ch) {
 void acquire_raw_analog_channels(struct channels_t *channels) {
   set_mux_ch(0);
   delayMicroseconds(1);
-  channels->ch_a0 = (float) analogRead(A0);
+  channels->ch_a0 = (float) analogRead(A0)*3.2*CALIB_GAIN/1024;
 
   set_mux_ch(1);
   delayMicroseconds(1);
-  channels->ch_a1 = (float) analogRead(A0);
+  channels->ch_a1 = (float) analogRead(A0)*3.2*CALIB_GAIN/1024;
 
   set_mux_ch(2);
   delayMicroseconds(1);
-  channels->ch_a2 = (float) analogRead(A0);
+  channels->ch_a2 = (float) analogRead(A0)*3.2*CALIB_GAIN/1024;
 
   set_mux_ch(3);
   delayMicroseconds(1);
-  channels->ch_a3 = (float) analogRead(A0);
+  channels->ch_a3 = (float) analogRead(A0)*3.2*CALIB_GAIN/1024;
 
   set_mux_ch(4);
   delayMicroseconds(1);
-  channels->ch_a4 = (float) analogRead(A0);
+  channels->ch_a4 = (float) analogRead(A0)*3.2*CALIB_GAIN/1024;
 
   set_mux_ch(5);
   delayMicroseconds(1);
-  channels->ch_a5 = (float) analogRead(A0);
+  channels->ch_a5 = (float) analogRead(A0)*3.2*CALIB_GAIN/1024;
 
   set_mux_ch(6);
   delayMicroseconds(1);
-  channels->ch_a6 = (float) analogRead(A0);
+  channels->ch_a6 = (float) analogRead(A0)*3.2*CALIB_GAIN/1024;
 
   set_mux_ch(7);
   delayMicroseconds(1);
-  channels->ch_a7 = (float) analogRead(A0);
+  channels->ch_a7 = (float) analogRead(A0)*3.2*CALIB_GAIN/1024;
 }
 
 //*****************************************************************************
@@ -270,6 +270,7 @@ void acquire_and_process_analog_channels(struct channels_t *channels) {
   channels->ch_a7 = f;
 
   if (1) {
+    /*
     Serial.print("Vmean: ");
     Serial.println(Vmean, 3);
     Serial.print("Vrms: ");
@@ -287,6 +288,7 @@ void acquire_and_process_analog_channels(struct channels_t *channels) {
     Serial.print("f: ");
     Serial.println(f, 5);
     delayMicroseconds(10);
+    */
   }
 }
 
@@ -379,10 +381,10 @@ void timeStamp(void) {
 //*****************************************************************************
 
 void print_elapsed_time(String msg, unsigned long start_time_us, unsigned long stop_time_us) {
-  Serial.print(msg);
-  Serial.print(stop_time_us - start_time_us);
-  Serial.println(" us");
-  delayMicroseconds(10);
+  //Serial.print(msg);
+  //Serial.print(stop_time_us - start_time_us);
+ // Serial.println(" us");
+  //delayMicroseconds(10);
 }
 
 //*****************************************************************************

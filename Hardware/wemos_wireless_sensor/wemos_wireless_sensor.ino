@@ -1,4 +1,6 @@
-//wemos_wireless_sensor.ino
+
+#include <ESP8266WiFi.h>
+#include <PubSubClient.h>
 
 #include "ws_support_fcns.h"
 #include <SPI.h>
@@ -6,6 +8,74 @@
 #include "DHT.h"
 #define DHTTYPE DHT22
 DHT dht(PIN_1WIRE, DHTTYPE);
+const char *ssid = "test1", *password = "magic", *mqtt_server = "150.145.127.37";
+WiFiClient espClient;
+PubSubClient client(espClient);
+static byte msg[1]; //to be changed
+static struct txdata_t txdata;
+static byte *atxdata = NULL; //atxdata is an alias of txdata
+static struct config_data_t config_data;
+static byte *aconf_data = NULL;
+String tmp;
+char mybuffer[200]; //a buffer to build formatted strings
+
+
+
+
+
+
+void callback(char* topic, byte* payload, unsigned int length) {
+  //Serial.println(topic);
+  //for (int i = 0; i < length; i++) {
+    //Serial.print((char)payload[i]); // store into byte msg[]
+    msg[0]=payload[0];
+    //Serial.println(msg[0]);
+    //aconf_data[i]=(byte)payload[i];
+  //}
+  //Serial.println();
+}
+
+
+void setup_wifi() {
+
+  delay(10);
+  // We start by connecting to a WiFi network
+  Serial.println();
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
+
+  WiFi.begin(ssid, password);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("");
+  Serial.println("WiFi connected");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
+}
+
+//binding to broker mosquitto
+void reconnect() {
+  while (!client.connected()) {
+    Serial.print("Attempting MQTT connection...");
+    // Attempt to connect
+    if (client.connect("WemosClient", "issia", "cnr")) {
+      Serial.println("connected");
+      //client.subscribe("wemos0/config",0); //topic
+      client.subscribe("/request");
+
+    } else {
+      Serial.print("failed, rc=");
+      Serial.print(client.state());
+      Serial.println(" try again in 5 seconds");
+      // Wait 5 seconds before retrying
+      delay(5000);
+    }
+  }
+}
+
 
 void setup()
 {
@@ -15,38 +85,49 @@ void setup()
   pinMode(PIN_MUX_S0, OUTPUT);
   pinMode(PIN_MUX_S1, OUTPUT);
   pinMode(PIN_MUX_S2_SPI_SSn, OUTPUT);
+  setup_wifi();
+  WiFi.mode(WIFI_STA); // only station, it doesn't initialize a AP!
+  client.setServer(mqtt_server, 8883);
+  client.setCallback(callback);
+  if (client.connect("WemosClient", "issia", "cnr")) {
+      Serial.println("Welcome message sent");
+      client.publish("/welcome","wemos0"); //topic, board
+      client.subscribe("/requestWelcomeToServer");
+
+  }
   //setup 1-Wire
   dht.begin();
   //setup I2C
-  Wire.setClock(400000);
   Wire.begin();
   //setup SPI master
 //  pinMode(PIN_SPI_SCLK, OUTPUT);
 //  pinMode(PIN_SPI_MISO, INPUT);
 //  pinMode(PIN_SPI_MOSI, OUTPUT);
   pinMode(PIN_MUX_S2_SPI_SSn, OUTPUT);
+
+  atxdata = (byte *) &txdata; // alias of txdata as an array
+  //config_data = {99, 33, 'O', 192, 168, 0, 200,
+  //0x17, 0x09, 0x25, 0x10, 0x30, 0x15};
+  aconf_data = (byte *) &config_data;
+  tmp="";
   SPI.begin();
+  msg[0] = 99; // for each reboot, i set a new datetime
 }
 
-void loop()
-{
-  static bool toggle_flag = false;
-  static byte msg[] = {0xF5, 0x99, 0xAB}; //to be changed
+void loop(){
+  client.loop();
   static bool first_time = true;
-  static char mybuffer[55]; //a buffer to build formatted strings
   static unsigned long initial_time_us, start_time_us, stop_time_us;
-
-  static struct config_data_t config_data = {0xF5, 33, 'E', 150, 145, 127, 37,
+  static bool toggle_flag = false;
+  static struct config_data_t config_data = {99, 33, 'O', 150, 145, 127, 37,
     0x22, 0xB3, 0x17, 0x09, 0x26, 0x10, 0x30, 0x15};
+
   //static byte *aconfig_data = NULL; // aconfig_data is an alias of config_data
   static struct channels_t channels;
   static float *achannels = NULL; // achannels is an alias of channels
-  static struct txdata_t txdata;
-  static byte *atxdata = NULL; //atxdata is an alias of txdata
 
   //aconfig_data = (byte *) &config_data; // alias of config_data as an array
   achannels = (float *) &channels; // alias of channels as an array
-  atxdata = (byte *) &txdata; // alias of txdata as an array
 
   //PROGRAMMING MODE
   if (PROGRAM_EEPROM == 1) {
@@ -83,26 +164,18 @@ void loop()
 
   //NORMAL OPERATION MODE - SUBSEQUENT CALLS
   initial_time_us = micros();
-  if (VERBOSE) {
-    Serial.println("starting loop...");
-    delayMicroseconds(10);
-  }
-  
+  //Serial.println("starting loop...");
+  delayMicroseconds(10);
+
   //STEP 1: check if new msg received
   //get message
-  if (MSG_ARRIVED) {
-    start_time_us = micros();
-    Serial.print("msg received: ");
-    snprintf(mybuffer, sizeof(mybuffer), "0x%02x", msg[0]);
-    Serial.println(mybuffer);
-    delayMicroseconds(10);
+   if (msg[0] == WHO_ARE_YOU) {
+       client.publish("/welcome","wemos0"); //topic, board
+       memset(msg,0,1);
+   }
 
-    if (msg[0] == MSG_ID_QUERY_SENSORS) {
-      //send welcome msg to broker, containing config_data
-      Serial.println("welcome!");
-      delayMicroseconds(10);
-    }
-    else if (msg[0] == MSG_ID_CONFIG) {
+   if (msg[0] == MSG_ID_CONFIG) {
+    start_time_us = micros();
       //program RTCC
       WriteI2CByte(RTCC_ADDR, 0x00, 0x00);    //stop RTCC and reset seconds
       WriteI2CByte(RTCC_ADDR, 0x06, config_data.yy);
@@ -118,9 +191,11 @@ void loop()
       if (!program_eeprom(&config_data)) {
         toggle_error_led(PIN_LED); // do not return
       }
-    }
+    
     stop_time_us = micros();
     print_elapsed_time("msg processing finished in ", start_time_us, stop_time_us);
+  
+    memset(msg,0,1);
   }
 
   //STEP 2: acquire data from hw sensors
@@ -175,7 +250,7 @@ void loop()
   byte data;
 
   start_time_us = micros();
-  txdata.cmd = MSG_ID_DATA;
+  //txdata.cmd = MSG_ID_DATA;
   txdata.board_id = config_data.board_id;
   txdata.board_type = config_data.board_type;
 
@@ -192,6 +267,9 @@ void loop()
   txdata.mm = data & 0xff >> (1);
   data = ReadI2CByte(RTCC_ADDR, 0); // get seconds from rtc
   txdata.ss = data & 0xff >> (1);
+  
+ 
+  
 
   { // to be removed
     int temp = 0x3F9E0652;
@@ -207,7 +285,7 @@ void loop()
     atxdata[CH_START_INDEX + 4 * i + 2] = (byte) ((*pint & 0x0000FF00) >> 8);
     atxdata[CH_START_INDEX + 4 * i + 3] = (byte) ((*pint & 0x000000FF) >> 0);
   }
-
+  txdata.ch_a0 = 1.2345; // to be removed
   stop_time_us = micros();
   if (VERBOSE)
     print_elapsed_time("data preparing finished in ", start_time_us, stop_time_us);
@@ -217,34 +295,49 @@ void loop()
   //... send LEN_TXDATA bytes
   if (VERBOSE) {
     for (int i = 0; i < LEN_TXDATA - 1; i++) {
-      snprintf(mybuffer, sizeof(mybuffer), "0x%02x, ", atxdata[i]);
-      Serial.print(mybuffer);
+      //snprintf(mybuffer, sizeof(mybuffer), "0x%02x, ", atxdata[i]);
+        //Serial.println(atxdata[i],HEX);
+//      if (i>2 && i<9) tmp+=String(atxdata[i],HEX);
+//      else tmp+= (atxdata[i]);
+      //tmp+=" ";
+      tmp += atxdata[i];
     }
-    snprintf(mybuffer, sizeof(mybuffer), "0x%02x\n", atxdata[LEN_TXDATA - 1]);
-    Serial.print(mybuffer);
+    //snprintf(mybuffer, sizeof(mybuffer), "0x%02x\n", atxdata[LEN_TXDATA - 1]);
+    tmp += atxdata[LEN_TXDATA - 1];
     delayMicroseconds(10);
   }
+  tmp[0] = 17;
+  tmp[1] = 255;
+  tmp[2] = 0x63;
+  if (!client.connected()) {
+    reconnect(); // reconnect to server mqtt
+  }
+  tmp.toCharArray(mybuffer,200);
+  //Serial.println(mybuffer);
+  client.publish("wemos0/data",(byte *) &txdata, LEN_TXDATA);
+  tmp="";
+  Serial.println(mybuffer);
+  memset(mybuffer,0,200);
+  delayMicroseconds(10);
   stop_time_us = micros();
   if (VERBOSE)
     print_elapsed_time("sending msg finished in ", start_time_us, stop_time_us);
 
   //print total time
   stop_time_us = micros();
-  if (VERBOSE) {
-    print_elapsed_time("loop iteration finished in ", initial_time_us, stop_time_us);
-    Serial.println();
-  }
-  
+  print_elapsed_time("loop iteration finished in ", initial_time_us, stop_time_us);
+  Serial.println();
+
   //wait delta time
   long deltaT = TLOOP_US - (micros() - initial_time_us);
   if (deltaT > 0) {
     delayMicroseconds(deltaT);
   }
   else {
-    snprintf(mybuffer, sizeof(mybuffer), "cannot finish loop within %d us. system halted.", TLOOP_US);
-    Serial.println(mybuffer);
+    //snprintf(mybuffer, sizeof(mybuffer), "cannot finish loop within %d us. system halted.", TLOOP_US);
+    //Serial.println(mybuffer);
     delayMicroseconds(10);
-    while(1);   
+    //while(1);   
   }
 }
 

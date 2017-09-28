@@ -11,13 +11,13 @@ try:
 
         client = paho.Client()
         client.connect("150.145.127.37", 8883)
-        client.publish("+/config", "eeprom_data", 0)
+        client.publish("wemos0/config", "0xF5")
         flag=True #i verify if the data has been send to boards
-        pass
+        #pass
 
     elif (re.search('[no|N|n|No|NO]',reply) or flag):
         print("Starting module store_it")
-        proc=subprocess.Popen("/home/nataraja/Scrivania/Issia\&tesi/mqtt_client/store_it.py", shell=True)
+        proc=subprocess.Popen("/home/nataraja/Scrivania/Issia\&tesi/mqtt_client/store_it.py", shell=False)
         if not proc:
             print("Error to create a new process. Exit")
             sys.exit(0)

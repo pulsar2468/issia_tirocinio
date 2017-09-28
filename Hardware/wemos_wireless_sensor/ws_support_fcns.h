@@ -7,14 +7,14 @@
 
 #define PROGRAM_EEPROM 0
 #define DEBUG_WITHOUT_EEPROM 1
-#define MSG_ARRIVED 0
+//#define MSG_ARRIVED 1
 #define VERBOSE 1
 #define NSAMPLES 1000
 #define TSAMPLE_US 200
 //sampling freq. is 5 kHz (max 8 kHz)
 #define TLOOP_US 1000000
 //wdt resets board after about 2 sec
-#define CALIB_GAIN 1.0538
+#define CALIB_GAIN 1.066024
 #define RTCC_ADDR 0x6F
 #define EEPROM_ADDR 0x57
 #define I2C_SENSOR_ADDR 0x6F
@@ -33,11 +33,11 @@
 #define PIN_SPI_MOSI D7
 
 //msg id for messages sent by server
-#define MSG_ID_QUERY_SENSORS 0x01
-#define MSG_ID_CONFIG 0xF5
+//#define MSG_ID_QUERY_SENSORS 0x01
+#define MSG_ID_CONFIG 99
 
 //msg id for messages sent by wireless sensor
-#define MSG_ID_DATA 0x02
+#define WHO_ARE_YOU 104
 
 //type definitions:
 //config data sent by server and stored in EEPROM
@@ -79,7 +79,7 @@ struct channels_t {
 };
 
 //measured data sent by wireless sensor to server
-#define LEN_TXDATA 53
+#define LEN_TXDATA 21
 #define CH_START_INDEX 9
 struct txdata_t {
   byte cmd;
