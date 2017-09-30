@@ -1,13 +1,13 @@
 //ws_support_fcns.h
+//http://www.hobbytronics.co.uk/arduino-external-eeprom
 
 #ifndef WS_SUPPORT_FCNS_H_
 #define WS_SUPPORT_FCNS_H_
 
 #include <Arduino.h>
 
-#define PROGRAM_EEPROM 0
+#define PROGRAM_EEPROM 1
 #define DEBUG_WITHOUT_EEPROM 1
-//#define MSG_ARRIVED 1
 #define VERBOSE 1
 #define NSAMPLES 1000
 #define TSAMPLE_US 200
@@ -23,7 +23,7 @@
 //pin definitions
 #define PIN_MUX_S0 D0
 #define PIN_MUX_S1 D3
-#define PIN_MUX_S2_SPI_SSn D8
+#define PIN_MUX_S2 D8
 #define PIN_1WIRE D4
 #define PIN_LED D4
 #define PIN_I2C_SCL D1
@@ -31,8 +31,9 @@
 #define PIN_SPI_SCLK D5
 #define PIN_SPI_MISO D6
 #define PIN_SPI_MOSI D7
+#define PIN_SPI_SSn D8
 
-//msg id for messages sent by server
+//msg id for messages sent by client
 //#define MSG_ID_QUERY_SENSORS 0x01
 #define MSG_ID_CONFIG 99
 
@@ -40,29 +41,41 @@
 #define WHO_ARE_YOU 104
 
 //type definitions:
-//config data sent by server and stored in EEPROM
-#define LEN_CONFIG_DATA 15
-#define LEN_CONFIG_DATA_EE 9
+//config data sent by client and stored in EEPROM
+#define EEPROM_SIZE 512
+#define EEPROM_VAR_START_IDX 8
+#define EEPROM_STR_SIZE 125
+#define LEN_CONFIG_DATA_EE 0
 struct config_data_t {
-  byte cmd;
   byte board_id;
   byte board_type;
-  byte IPaddr_3;
-  byte IPaddr_2;
-  byte IPaddr_1;
-  byte IPaddr_0;
-  byte IPport_1;
-  byte IPport_0;
+  byte MQTT_IPaddr_3;
+  byte MQTT_IPaddr_2;
+  byte MQTT_IPaddr_1;
+  byte MQTT_IPaddr_0;
+  byte MQTT_port_1;
+  byte MQTT_port_0;
+  byte MQTT_user_len;
+  byte MQTT_user[EEPROM_STR_SIZE];
+  byte MQTT_pwd_len;
+  byte MQTT_pwd[EEPROM_STR_SIZE];
+  byte WiFi_SSID_len;
+  byte WiFi_SSID[EEPROM_STR_SIZE];
+  byte WiFi_pwd_len;
+  byte WiFi_pwd[EEPROM_STR_SIZE];
+};
+
+/*
   byte yy;
   byte mth;
   byte dd;
   byte hh;
   byte mm;
   byte ss;
-};
+*/
 
-//signal values, i.e., either raw measured data
-//or Vmean, Vrms, Imean, Irms, A, P, T, f
+//signal values, i.e., either 8 raw measured data
+//or Vdc, Vrms, Idc, Irms, Pdc, P, A, T
 #define LEN_CHANNELS 11
 struct channels_t {
   float ch_a0;
@@ -78,9 +91,10 @@ struct channels_t {
   float ch_spi;
 };
 
-//measured data sent by wireless sensor to server
-#define LEN_TXDATA 21
+//measured data sent by wireless sensor to client
+#define LEN_TXDATA 53
 #define CH_START_INDEX 9
+//pay attention to 4-byte alignment
 struct txdata_t {
   byte cmd;
   byte board_id;
@@ -104,7 +118,30 @@ struct txdata_t {
   float ch_spi;
 };
 
+//global variables
+//WiFi credentials
+extern char *wifi_ssid;
+extern char *wifi_pwd;
 
+//default wemos parameters
+extern byte cmd;
+extern byte board_id;
+extern byte board_type;
+
+//default broker credentials
+extern char *mqtt_addr;
+extern byte MQTT_IPaddr_3;
+extern byte MQTT_IPaddr_2;
+extern byte MQTT_IPaddr_1;
+extern byte MQTT_IPaddr_0;
+extern int mqtt_port;
+extern byte MQTT_port_1;
+extern byte MQTT_port_0;
+extern char *mqtt_user;
+extern byte MQTT_user_len;
+extern char *mqtt_pwd;
+extern byte MQTT_pwd_len;
+  
 //function prototypes
 void read_config_data_from_eeprom(struct config_data_t *config_data);
 bool program_eeprom(struct config_data_t *config_data);
@@ -124,3 +161,4 @@ void print_elapsed_time(String msg, unsigned long start_time_us, unsigned long s
 void spiWrite(byte value);
 
 #endif /* WS_SUPPORT_FCNS_H_ */
+

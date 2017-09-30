@@ -9,28 +9,28 @@
 //function implementations
 void read_config_data_from_eeprom(struct config_data_t *config_data) {
   //read data and store them into config_data
-  config_data->cmd = ReadI2CByte(EEPROM_ADDR, 0x00);
+//  config_data->cmd = ReadI2CByte(EEPROM_ADDR, 0x00);
   config_data->board_id = ReadI2CByte(EEPROM_ADDR, 0x01);
   config_data->board_type = ReadI2CByte(EEPROM_ADDR, 0x02);
-  config_data->IPaddr_3 = ReadI2CByte(EEPROM_ADDR, 0x03);
-  config_data->IPaddr_2 = ReadI2CByte(EEPROM_ADDR, 0x04);
-  config_data->IPaddr_1 = ReadI2CByte(EEPROM_ADDR, 0x05);
-  config_data->IPaddr_0 = ReadI2CByte(EEPROM_ADDR, 0x06);
-  config_data->IPport_1 = ReadI2CByte(EEPROM_ADDR, 0x07);
-  config_data->IPport_0 = ReadI2CByte(EEPROM_ADDR, 0x08);
-  config_data->yy = 0;
-  config_data->mth = 0;
-  config_data->dd = 0;
-  config_data->hh = 0;
-  config_data->mm = 0;
-  config_data->ss = 0;
+  config_data->MQTT_IPaddr_3 = ReadI2CByte(EEPROM_ADDR, 0x03);
+  config_data->MQTT_IPaddr_2 = ReadI2CByte(EEPROM_ADDR, 0x04);
+  config_data->MQTT_IPaddr_1 = ReadI2CByte(EEPROM_ADDR, 0x05);
+  config_data->MQTT_IPaddr_0 = ReadI2CByte(EEPROM_ADDR, 0x06);
+  config_data->MQTT_port_1 = ReadI2CByte(EEPROM_ADDR, 0x07);
+  config_data->MQTT_port_0 = ReadI2CByte(EEPROM_ADDR, 0x08);
+//  config_data->yy = 0;
+//  config_data->mth = 0;
+//  config_data->dd = 0;
+//  config_data->hh = 0;
+//  config_data->mm = 0;
+//  config_data->ss = 0;
 }
-
+  
 //*****************************************************************************
-
+//
 bool program_eeprom(struct config_data_t *config_data) {
   byte data;
-  static byte *aconfig_data = (byte *) config_data;
+  byte *aconfig_data = (byte *) config_data;
 
   //program
   for (int i = 0; i < LEN_CONFIG_DATA_EE; i++) {
@@ -43,12 +43,21 @@ bool program_eeprom(struct config_data_t *config_data) {
     data = ReadI2CByte(EEPROM_ADDR, 0x00 + i);
     Serial.println(data);
     if (data != aconfig_data[i]) {
-      Serial.println("EEPROM not ok!");
+      Serial.println("EEPROM failed verify!");
       delayMicroseconds(10);
       //return false;
     }
   }
-  Serial.println("EEPROM ok!");
+
+  char mybuffer[200]; //a buffer to build formatted strings
+  for (int offset = 0; offset < 16; offset++) {
+    for (int i = 0; i < 32; i++) {
+      snprintf(mybuffer, sizeof(mybuffer), "0x%02x, ", aconfig_data[offset*32 + i]);
+      Serial.print(mybuffer);
+    }
+    Serial.println();
+  }
+  Serial.println("EEPROM verified!");
   delayMicroseconds(10);
   return true;
 }
@@ -113,47 +122,47 @@ void set_mux_ch(unsigned int ch) {
     case 0:
       digitalWrite(PIN_MUX_S0, LOW);
       digitalWrite(PIN_MUX_S1, LOW);
-      digitalWrite(PIN_MUX_S2_SPI_SSn, LOW);
+      digitalWrite(PIN_MUX_S2 ,LOW);
       break;
     case 1:
       digitalWrite(PIN_MUX_S0, HIGH);
       digitalWrite(PIN_MUX_S1, LOW);
-      digitalWrite(PIN_MUX_S2_SPI_SSn, LOW);
+      digitalWrite(PIN_MUX_S2, LOW);
       break;
     case 2:
       digitalWrite(PIN_MUX_S0, LOW);
       digitalWrite(PIN_MUX_S1, HIGH);
-      digitalWrite(PIN_MUX_S2_SPI_SSn, LOW);
+      digitalWrite(PIN_MUX_S2, LOW);
       break;
     case 3:
       digitalWrite(PIN_MUX_S0, HIGH);
       digitalWrite(PIN_MUX_S1, HIGH);
-      digitalWrite(PIN_MUX_S2_SPI_SSn, LOW);
+      digitalWrite(PIN_MUX_S2, LOW);
       break;
     case 4:
       digitalWrite(PIN_MUX_S0, LOW);
       digitalWrite(PIN_MUX_S1, LOW);
-      digitalWrite(PIN_MUX_S2_SPI_SSn, HIGH);
+      digitalWrite(PIN_MUX_S2, HIGH);
       break;
     case 5:
       digitalWrite(PIN_MUX_S0, HIGH);
       digitalWrite(PIN_MUX_S1, LOW);
-      digitalWrite(PIN_MUX_S2_SPI_SSn, HIGH);
+      digitalWrite(PIN_MUX_S2, HIGH);
       break;
     case 6:
       digitalWrite(PIN_MUX_S0, LOW);
       digitalWrite(PIN_MUX_S1, HIGH);
-      digitalWrite(PIN_MUX_S2_SPI_SSn, HIGH);
+      digitalWrite(PIN_MUX_S2, HIGH);
       break;
     case 7:
       digitalWrite(PIN_MUX_S0, HIGH);
       digitalWrite(PIN_MUX_S1, HIGH);
-      digitalWrite(PIN_MUX_S2_SPI_SSn, HIGH);
+      digitalWrite(PIN_MUX_S2, HIGH);
       break;
     default:
       digitalWrite(PIN_MUX_S0, LOW);
       digitalWrite(PIN_MUX_S1, LOW);
-      digitalWrite(PIN_MUX_S2_SPI_SSn, LOW);
+      digitalWrite(PIN_MUX_S2, LOW);
       break;
   }
 }
@@ -391,11 +400,12 @@ void print_elapsed_time(String msg, unsigned long start_time_us, unsigned long s
 
 void spiWrite(byte value) {
   // take the SS pin low to select the chip:
-  digitalWrite(PIN_MUX_S2_SPI_SSn, LOW);
+  digitalWrite(PIN_SPI_SSn, LOW);
   //  send in the address and value via SPI:
   //SPI.transfer(address);
   SPI.transfer(value);
   // take the SS pin high to de-select the chip:
-  digitalWrite(PIN_MUX_S2_SPI_SSn, HIGH);
+  digitalWrite(PIN_SPI_SSn, HIGH);
 }
+
 
