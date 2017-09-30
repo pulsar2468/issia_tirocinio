@@ -94,25 +94,30 @@ void WriteI2CByte(const unsigned char addr, const unsigned char reg,
 
 //*****************************************************************************
 
-void toggle_confirmation_led(int pin) {
-  //flash LED at 1 Hz and do not return
-  while (1) {
-    digitalWrite(pin, HIGH);
-    delay(500);
-    digitalWrite(pin, LOW);
-    delay(500);
-  }
-
-}//*****************************************************************************
-
 void toggle_error_led(int pin) {
+  //flash LED at 2 Hz and do not return
+  pinMode(PIN_LED, OUTPUT);
+  while (1) {
+    digitalWrite(pin, HIGH);
+    delay(250);
+    digitalWrite(pin, LOW);
+    delay(250);
+  }
+  pinMode(PIN_1WIRE, INPUT_PULLUP);
+}
+
+//*****************************************************************************
+
+void toggle_confirmation_led(int pin) {
   //flash LED at 0.5 Hz and do not return
+  pinMode(PIN_LED, OUTPUT);
   while (1) {
     digitalWrite(pin, HIGH);
     delay(1000);
     digitalWrite(pin, LOW);
     delay(1000);
   }
+  pinMode(PIN_1WIRE, INPUT_PULLUP);
 }
 
 //*****************************************************************************

@@ -6,8 +6,10 @@
 
 #include <Arduino.h>
 
-#define PROGRAM_EEPROM 1
-#define DEBUG_WITHOUT_EEPROM 1
+#define PROGRAM_EEPROM 0
+#define DEBUG_FAKE_EEPROM 1
+#define DEBUG_FAKE_BROKER 1
+#define DEBUG_FAKE_MSG 1
 #define VERBOSE 1
 #define NSAMPLES 1000
 #define TSAMPLE_US 200
@@ -34,11 +36,13 @@
 #define PIN_SPI_SSn D8
 
 //msg id for messages sent by client
+#define MSG_ID_WHO_ARE_YOU 104
+//h
 //#define MSG_ID_QUERY_SENSORS 0x01
 #define MSG_ID_CONFIG 99
+//c
 
 //msg id for messages sent by wireless sensor
-#define WHO_ARE_YOU 104
 
 //type definitions:
 //config data sent by client and stored in EEPROM
@@ -56,13 +60,13 @@ struct config_data_t {
   byte MQTT_port_1;
   byte MQTT_port_0;
   byte MQTT_user_len;
-  byte MQTT_user[EEPROM_STR_SIZE];
+  char MQTT_user[EEPROM_STR_SIZE];
   byte MQTT_pwd_len;
-  byte MQTT_pwd[EEPROM_STR_SIZE];
+  char MQTT_pwd[EEPROM_STR_SIZE];
   byte WiFi_SSID_len;
-  byte WiFi_SSID[EEPROM_STR_SIZE];
+  char WiFi_SSID[EEPROM_STR_SIZE];
   byte WiFi_pwd_len;
-  byte WiFi_pwd[EEPROM_STR_SIZE];
+  char WiFi_pwd[EEPROM_STR_SIZE];
 };
 
 /*
@@ -118,35 +122,12 @@ struct txdata_t {
   float ch_spi;
 };
 
-//global variables
-//WiFi credentials
-extern char *wifi_ssid;
-extern char *wifi_pwd;
 
-//default wemos parameters
-extern byte cmd;
-extern byte board_id;
-extern byte board_type;
-
-//default broker credentials
-extern char *mqtt_addr;
-extern byte MQTT_IPaddr_3;
-extern byte MQTT_IPaddr_2;
-extern byte MQTT_IPaddr_1;
-extern byte MQTT_IPaddr_0;
-extern int mqtt_port;
-extern byte MQTT_port_1;
-extern byte MQTT_port_0;
-extern char *mqtt_user;
-extern byte MQTT_user_len;
-extern char *mqtt_pwd;
-extern byte MQTT_pwd_len;
-  
 //function prototypes
 void read_config_data_from_eeprom(struct config_data_t *config_data);
 bool program_eeprom(struct config_data_t *config_data);
-void toggle_confirmation_led(int pin);
 void toggle_error_led(int pin);
+void toggle_confirmation_led(int pin);
 void set_mux_ch(unsigned int ch);
 void acquire_raw_analog_channels(struct channels_t *channels);
 void acquire_and_process_analog_channels(struct channels_t *channels);
