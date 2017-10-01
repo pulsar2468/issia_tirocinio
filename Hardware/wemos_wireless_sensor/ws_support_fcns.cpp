@@ -236,7 +236,7 @@ void acquire_and_process_v_and_i(struct channels_t *channels) {
   float sum_p = 0.0;
   float sum_squared_v = 0.0;
   float sum_squared_i = 0.0;
-  float Vmean, Vrms, Imean, Irms, A, P, T, f;
+  float Vdc, Vrms, Idc, Irms, Pdc, A, P, T;
 
   //store NSAMPLES samples of V and I in buf0 and buf1
   for (int j = 0; j < NSAMPLES; j++) {
@@ -250,75 +250,48 @@ void acquire_and_process_v_and_i(struct channels_t *channels) {
 
   //scale values and compute power and sums
   for (int j = 0; j < NSAMPLES; j++) {
-    v[j] = (float) buf0[j] * (3.2 * ADC_CALIB_GAIN / 1024);
-    i[j] = (float) buf1[j] * (3.2 * ADC_CALIB_GAIN / 1024);
+    v[j] = ((float) buf0[j]) * (3.2 * ADC_CALIB_GAIN / 1024);
+    i[j] = ((float) buf1[j]) * (3.2 * ADC_CALIB_GAIN / 1024);
     p[j] = v[j] * i[j];
     sum_v += v[j];
     sum_i += i[j];
     sum_p += p[j];
   }
 
-  //compute Vmean, Imean, P
-  Vmean = sum_v / NSAMPLES;
-  Imean = sum_i / NSAMPLES;
-  P = sum_p / NSAMPLES;
+  //compute Vdc, Idc, Pdc
+  Vdc = sum_v / NSAMPLES;
+  Idc = sum_i / NSAMPLES;
+  Pdc = sum_p / NSAMPLES;
 
-  //remove mean value and compute sums of squared elements
+  //remove mean values and compute sums of squared elements
+  sum_p = 0;
   for (int j = 0; j < NSAMPLES; j++) {
-    v[j] -= Vmean;
-    i[j] -= Imean;
+    v[j] -= Vdc;
+    i[j] -= Idc;
+    p[j] = v[j] * i[j];
     sum_squared_v += pow(v[j], 2);
     sum_squared_i += pow(i[j], 2);
+    sum_p += p[j];
   }
 
-  //compute Vrms, Irms, A
+  //compute Vrms, Irms, A, P
   Vrms = sqrt(sum_squared_v / NSAMPLES);
   Irms = sqrt(sum_squared_i / NSAMPLES);
   A = Vrms * Irms;
+  P = sum_p / NSAMPLES;
 
-  //reuse p to store sign of v (without mean value) and compute T and f
+  //reuse p to store sign of v (without mean value) and compute T
   T = compute_period(v, p);
-  if (T == INFINITY) {
-    f = 0.0;
-  }
-  else if (T == 0.0) {
-    f = INFINITY;
-  }
-  else {
-    f = 1.0 / T;
-  }
 
   //return values
-  channels->ch_a0 = Vmean;
+  channels->ch_a0 = Vdc;
   channels->ch_a1 = Vrms;
-  channels->ch_a2 = Imean;
+  channels->ch_a2 = Idc;
   channels->ch_a3 = Irms;
-  channels->ch_a4 = A;
-  channels->ch_a5 = P;
-  channels->ch_a6 = T;
-  channels->ch_a7 = f;
-
-  if (1) {
-    /*
-      Serial.print("Vmean: ");
-      Serial.println(Vmean, 3);
-      Serial.print("Vrms: ");
-      Serial.println(Vrms, 3);
-      Serial.print("Imean: ");
-      Serial.println(Imean, 3);
-      Serial.print("Irms: ");
-      Serial.println(Irms, 3);
-      Serial.print("A: ");
-      Serial.println(A, 2);
-      Serial.print("P: ");
-      Serial.println(P, 2);
-      Serial.print("T: ");
-      Serial.println(T, 5);
-      Serial.print("f: ");
-      Serial.println(f, 5);
-      delayMicroseconds(10);
-    */
-  }
+  channels->ch_a4 = Pdc;
+  channels->ch_a5 = A;
+  channels->ch_a6 = P;
+  channels->ch_a7 = T;
 }
 
 //*****************************************************************************
@@ -328,8 +301,7 @@ float compute_period(float *v, float *signs) {
   float id[2] = {0, 0};
 
   for (int i = 0; i < NSAMPLES; i++) {
-    //signs[i] = not(v[i] > 0.1 or v[i] < -0.1);
-    signs[i] = (v[i] >= 0.0 ? 1.0 : 0.0);
+    signs[i] = (v[i] > -(0.05*3.2/100) ? 1.0 : 0.0); //discard small noise below zero
   }
 
   for (int i = 0; i < NSAMPLES - 1; i++) {

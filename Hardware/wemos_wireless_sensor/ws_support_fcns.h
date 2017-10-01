@@ -49,7 +49,7 @@
 
 //type definitions:
 //signal values, i.e., either 8 raw measured data
-//or Vdc, Vrms, Idc, Irms, Pdc, P, A, T
+//or Vdc, Vrms, Idc, Irms, Pdc, A, P, T
 #define CHANNELS_LEN 11
 struct channels_t {
   float ch_a0;

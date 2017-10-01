@@ -342,17 +342,17 @@ void loop() {
     stop_time_us = micros();
     if (PARTIAL_EXEC_TIME)
       print_elapsed_time("raw analog acquisition finished in ", start_time_us, stop_time_us);
-    if (VERBOSE) {
-      Serial.println("Results:");
-      Serial.println(channels.ch_a0, 6);
-      Serial.println(channels.ch_a1, 6);
-      Serial.println(channels.ch_a2, 6);
-      Serial.println(channels.ch_a3, 6);
-      Serial.println(channels.ch_a4, 6);
-      Serial.println(channels.ch_a5, 6);
-      Serial.println(channels.ch_a6, 6);
-      Serial.println(channels.ch_a7, 6);
-    }
+  }
+  if (VERBOSE) {
+    Serial.println("Results:");
+    Serial.println(channels.ch_a0, 6);
+    Serial.println(channels.ch_a1, 6);
+    Serial.println(channels.ch_a2, 6);
+    Serial.println(channels.ch_a3, 6);
+    Serial.println(channels.ch_a4, 6);
+    Serial.println(channels.ch_a5, 6);
+    Serial.println(channels.ch_a6, 6);
+    Serial.println(channels.ch_a7, 6);
   }
 
   //acquire 1-Wire data
