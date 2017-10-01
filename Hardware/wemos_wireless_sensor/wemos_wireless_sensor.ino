@@ -190,7 +190,7 @@ void setup()
   //otherwise read config data from eeprom, if not in debug mode
   if (!DEBUG_FAKE_EEPROM) {
     //retrieve config data from eeprom
-    //read_config_data_from_eeprom(&config_data); //TODO: to be implemented
+    read_config_data_from_eeprom(aconfig_data);
   }
 
   //test for correctness of eeprom data by checking board_type
@@ -330,7 +330,7 @@ void loop() {
   if (config_data.board_type == 0xFE) {
     //acquire V and I and compute electrical quantities
     start_time_us = micros();
-    acquire_and_process_analog_channels(&channels);
+    acquire_and_process_v_and_i(&channels);
     stop_time_us = micros();
     if (PARTIAL_EXEC_TIME)
       print_elapsed_time("electrical acquisition finished in ", start_time_us, stop_time_us);
@@ -375,10 +375,10 @@ void loop() {
   { // to be removed
     toggle_flag = !toggle_flag;
     if (toggle_flag) {
-      spiWrite(128);
+      WriteSPIByte(128);
     }
     else {
-      spiWrite(255);
+      WriteSPIByte(255);
     }
   }
   stop_time_us = micros();

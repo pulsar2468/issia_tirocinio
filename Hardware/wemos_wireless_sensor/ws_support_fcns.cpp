@@ -7,20 +7,6 @@
 
 
 //function implementations
-void read_config_data_from_eeprom(struct config_data_t *config_data) {
-  //read data and store them into config_data
-  //  config_data->cmd = ReadI2CByte(EEPROM_ADDR, 0x00);
-  config_data->board_id = ReadI2CByte(EEPROM_ADDR, 0x01);
-  config_data->board_type = ReadI2CByte(EEPROM_ADDR, 0x02);
-  config_data->MQTT_IPaddr_3 = ReadI2CByte(EEPROM_ADDR, 0x03);
-  config_data->MQTT_IPaddr_2 = ReadI2CByte(EEPROM_ADDR, 0x04);
-  config_data->MQTT_IPaddr_1 = ReadI2CByte(EEPROM_ADDR, 0x05);
-  config_data->MQTT_IPaddr_0 = ReadI2CByte(EEPROM_ADDR, 0x06);
-  config_data->MQTT_port_1 = ReadI2CByte(EEPROM_ADDR, 0x07);
-  config_data->MQTT_port_0 = ReadI2CByte(EEPROM_ADDR, 0x08);
-}
-
-//*****************************************************************************
 //
 bool program_eeprom(byte *aconfig_data) {
   byte data;
@@ -29,11 +15,10 @@ bool program_eeprom(byte *aconfig_data) {
   if (!DEBUG_FAKE_EEPROM) {
     for (int i = 0; i < CONFIG_DATA_LEN; i++) {
       WriteI2CByte(EEPROM_ADDR, 0x00 + i, aconfig_data[i]);
-      delayMicroseconds(10);
     }
   }
   else {
-    Serial.println("Simulated EEPROM:");
+    Serial.println("Simulated EEPROM write:");
     char mybuffer[200];
     for (int offset = 0; offset < 16; offset++) {
       for (int i = 0; i < 32; i++) {
@@ -49,8 +34,6 @@ bool program_eeprom(byte *aconfig_data) {
   if (!DEBUG_FAKE_EEPROM) {
     for (int i = 0; i < CONFIG_DATA_LEN; i++) {
       data = ReadI2CByte(EEPROM_ADDR, 0x00 + i);
-      delayMicroseconds(10);
-      Serial.println(data); // to be removed
       if (data != aconfig_data[i]) {
         Serial.println("EEPROM failed verify!");
         return false;
@@ -62,33 +45,66 @@ bool program_eeprom(byte *aconfig_data) {
 }
 
 //*****************************************************************************
+
+void read_config_data_from_eeprom(byte *aconfig_data) {
+  aconfig_data[0] = ReadI2CByte(EEPROM_ADDR, 0x00);
+  aconfig_data[1] = ReadI2CByte(EEPROM_ADDR, 0x01);
+  aconfig_data[2] = ReadI2CByte(EEPROM_ADDR, 0x02);
+  aconfig_data[3] = ReadI2CByte(EEPROM_ADDR, 0x03);
+  aconfig_data[4] = ReadI2CByte(EEPROM_ADDR, 0x04);
+  aconfig_data[5] = ReadI2CByte(EEPROM_ADDR, 0x05);
+  aconfig_data[6] = ReadI2CByte(EEPROM_ADDR, 0x06);
+  aconfig_data[7] = ReadI2CByte(EEPROM_ADDR, 0x07);
+
+  for (int j = 0; j < CONFIG_DATA_STR_NUM; j++) {
+    for (int i = 0; i < CONFIG_DATA_STR_SIZE; i++) {
+      aconfig_data[CONFIG_DATA_STR_START_IDX + j * CONFIG_DATA_STR_SIZE + i] =
+        ReadI2CByte(EEPROM_ADDR, CONFIG_DATA_STR_START_IDX + j * CONFIG_DATA_STR_SIZE + i);
+    }
+  }
+}
+
+//*****************************************************************************
 // Called to read bytes from I2C
-unsigned char ReadI2CByte(const unsigned char addr, const unsigned char reg) {
-  unsigned char data;
+byte ReadI2CByte(byte addr, byte reg) {
+  byte data = 0xFF;
 
   Wire.beginTransmission(addr);
   Wire.write(reg);
   Wire.endTransmission();
 
-  Wire.requestFrom(addr, 1);  // check this for overloading
-  while (Wire.available()) {
-    //Serial.println("waiting");
-    data = Wire.read();
-    //Serial.println(data);
+  //implement timeout of 5 ms
+  unsigned long s_time = millis();
+  while ((millis() - s_time) < 5) {
+    Wire.requestFrom((int) addr, 1);
+    if (Wire.available()) {
+      data = Wire.read();
+      break;
+    }
   }
-  delayMicroseconds(2);
   return data;
 }
 
 //*****************************************************************************
 // Called to write bytes to I2C
-void WriteI2CByte(const unsigned char addr, const unsigned char reg,
-                  const unsigned char data) {
+void WriteI2CByte(byte addr, byte reg, byte data) {
   Wire.beginTransmission(addr);
   Wire.write(reg);
   Wire.write(data);
   Wire.endTransmission();
-  delayMicroseconds(2);
+  delay(5); //bus free time
+}
+
+//*****************************************************************************
+
+void WriteSPIByte(byte value) {
+  // take the SS pin low to select the chip:
+  digitalWrite(PIN_SPI_SSn, LOW);
+  // send in the value via SPI:
+  SPI.transfer(value);
+  // take the SS pin high to de-select the chip:
+  digitalWrite(PIN_SPI_SSn, HIGH);
+  delay(5);
 }
 
 //*****************************************************************************
@@ -126,7 +142,7 @@ void set_mux_ch(unsigned int ch) {
     case 0:
       digitalWrite(PIN_MUX_S0, LOW);
       digitalWrite(PIN_MUX_S1, LOW);
-      digitalWrite(PIN_MUX_S2 , LOW);
+      digitalWrite(PIN_MUX_S2, LOW);
       break;
     case 1:
       digitalWrite(PIN_MUX_S0, HIGH);
@@ -209,7 +225,7 @@ void acquire_raw_analog_channels(struct channels_t *channels) {
 
 //*****************************************************************************
 
-void acquire_and_process_analog_channels(struct channels_t *channels) {
+void acquire_and_process_v_and_i(struct channels_t *channels) {
   static int buf0[NSAMPLES];
   static int buf1[NSAMPLES];
   static float v[NSAMPLES];
@@ -397,18 +413,6 @@ void print_elapsed_time(String msg, unsigned long start_time_us, unsigned long s
   Serial.print(stop_time_us - start_time_us);
   Serial.println(" us");
   delayMicroseconds(10);
-}
-
-//*****************************************************************************
-
-void spiWrite(byte value) {
-  // take the SS pin low to select the chip:
-  digitalWrite(PIN_SPI_SSn, LOW);
-  //  send in the address and value via SPI:
-  //SPI.transfer(address);
-  SPI.transfer(value);
-  // take the SS pin high to de-select the chip:
-  digitalWrite(PIN_SPI_SSn, HIGH);
 }
 
 //*****************************************************************************

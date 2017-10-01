@@ -9,7 +9,7 @@
 
 //operating mode
 #define PROGRAM_EEPROM 0
-#define DEBUG_FAKE_EEPROM 1
+#define DEBUG_FAKE_EEPROM 0
 #define DEBUG_FAKE_BROKER 1
 #define DEBUG_FAKE_MSG 1
 #define VERBOSE 1
@@ -33,7 +33,7 @@
 #define PIN_SPI_SSn D8
 
 //HW peripherals
-#define EEPROM_SIZE 512
+#define EEPROM_SIZE 128
 #define EEPROM_ADDR 0x57
 #define RTCC_ADDR 0x6F
 #define I2C_SENSOR_ADDR 0x6F
@@ -100,8 +100,9 @@ struct {
 
 //config data sent by remote client and stored in EEPROM
 #define CONFIG_DATA_STR_START_IDX 8
-#define CONFIG_DATA_STR_SIZE 125
-#define CONFIG_DATA_LEN (CONFIG_DATA_STR_START_IDX + 4 * CONFIG_DATA_STR_SIZE)
+#define CONFIG_DATA_STR_SIZE 30
+#define CONFIG_DATA_STR_NUM 4
+#define CONFIG_DATA_LEN (CONFIG_DATA_STR_START_IDX + CONFIG_DATA_STR_NUM * CONFIG_DATA_STR_SIZE)
 #define RXDATA_BUFSIZE (CONFIG_DATA_LEN + 3)
 //pay attention to byte alignment
 /*
@@ -155,22 +156,22 @@ struct txdata_t {
 
   
 //function prototypes
-void read_config_data_from_eeprom(struct config_data_t *config_data);
 bool program_eeprom(byte *aconfig_data);
+void read_config_data_from_eeprom(byte *aconfig_data);
+byte ReadI2CByte(byte addr, byte reg);
+void WriteI2CByte(byte addr, byte reg, byte data);
+void WriteSPIByte(byte value);
 void toggle_error_led(int pin);
 void toggle_confirmation_led(int pin);
 void set_mux_ch(unsigned int ch);
 void acquire_raw_analog_channels(struct channels_t *channels);
-void acquire_and_process_analog_channels(struct channels_t *channels);
+void acquire_and_process_v_and_i(struct channels_t *channels);
 float compute_period(float *v, float *signs);
-unsigned char ReadI2CByte(const unsigned char addr, const unsigned char reg);
-void WriteI2CByte(const unsigned char addr, const unsigned char reg, 
-                  const unsigned char data);
+
 String rtcDate(void);
 String rtcTime(void);
 void timestamp(void);
 void print_elapsed_time(String msg, unsigned long start_time_us, unsigned long stop_time_us);
-void spiWrite(byte value);
 void splitIPaddress(char *ipstr, byte *addr3, byte *addr2, byte *addr1, byte *addr0);
 void buildIPaddress(char *ipstr, byte addr3, byte addr2, byte addr1, byte addr0);
 void splitIPport(unsigned int port, byte *hi, byte *lo);
