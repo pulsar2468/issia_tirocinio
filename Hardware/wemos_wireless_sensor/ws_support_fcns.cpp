@@ -18,12 +18,6 @@ void read_config_data_from_eeprom(struct config_data_t *config_data) {
   config_data->MQTT_IPaddr_0 = ReadI2CByte(EEPROM_ADDR, 0x06);
   config_data->MQTT_port_1 = ReadI2CByte(EEPROM_ADDR, 0x07);
   config_data->MQTT_port_0 = ReadI2CByte(EEPROM_ADDR, 0x08);
-  //  config_data->yy = 0;
-  //  config_data->mth = 0;
-  //  config_data->dd = 0;
-  //  config_data->hh = 0;
-  //  config_data->mm = 0;
-  //  config_data->ss = 0;
 }
 
 //*****************************************************************************
@@ -33,7 +27,7 @@ bool program_eeprom(byte *aconfig_data) {
 
   //program
   if (!DEBUG_FAKE_EEPROM) {
-    for (int i = 0; i < LEN_CONFIG_DATA_EE; i++) {
+    for (int i = 0; i < CONFIG_DATA_LEN; i++) {
       WriteI2CByte(EEPROM_ADDR, 0x00 + i, aconfig_data[i]);
       delayMicroseconds(10);
     }
@@ -53,7 +47,7 @@ bool program_eeprom(byte *aconfig_data) {
 
   //verify
   if (!DEBUG_FAKE_EEPROM) {
-    for (int i = 0; i < LEN_CONFIG_DATA_EE; i++) {
+    for (int i = 0; i < CONFIG_DATA_LEN; i++) {
       data = ReadI2CByte(EEPROM_ADDR, 0x00 + i);
       delayMicroseconds(10);
       Serial.println(data); // to be removed
@@ -182,35 +176,35 @@ void set_mux_ch(unsigned int ch) {
 void acquire_raw_analog_channels(struct channels_t *channels) {
   set_mux_ch(0);
   delayMicroseconds(1);
-  channels->ch_a0 = (float) analogRead(A0) * 3.2 * CALIB_GAIN / 1024;
+  channels->ch_a0 = (float) analogRead(A0) * 3.2 * ADC_CALIB_GAIN / 1024;
 
   set_mux_ch(1);
   delayMicroseconds(1);
-  channels->ch_a1 = (float) analogRead(A0) * 3.2 * CALIB_GAIN / 1024;
+  channels->ch_a1 = (float) analogRead(A0) * 3.2 * ADC_CALIB_GAIN / 1024;
 
   set_mux_ch(2);
   delayMicroseconds(1);
-  channels->ch_a2 = (float) analogRead(A0) * 3.2 * CALIB_GAIN / 1024;
+  channels->ch_a2 = (float) analogRead(A0) * 3.2 * ADC_CALIB_GAIN / 1024;
 
   set_mux_ch(3);
   delayMicroseconds(1);
-  channels->ch_a3 = (float) analogRead(A0) * 3.2 * CALIB_GAIN / 1024;
+  channels->ch_a3 = (float) analogRead(A0) * 3.2 * ADC_CALIB_GAIN / 1024;
 
   set_mux_ch(4);
   delayMicroseconds(1);
-  channels->ch_a4 = (float) analogRead(A0) * 3.2 * CALIB_GAIN / 1024;
+  channels->ch_a4 = (float) analogRead(A0) * 3.2 * ADC_CALIB_GAIN / 1024;
 
   set_mux_ch(5);
   delayMicroseconds(1);
-  channels->ch_a5 = (float) analogRead(A0) * 3.2 * CALIB_GAIN / 1024;
+  channels->ch_a5 = (float) analogRead(A0) * 3.2 * ADC_CALIB_GAIN / 1024;
 
   set_mux_ch(6);
   delayMicroseconds(1);
-  channels->ch_a6 = (float) analogRead(A0) * 3.2 * CALIB_GAIN / 1024;
+  channels->ch_a6 = (float) analogRead(A0) * 3.2 * ADC_CALIB_GAIN / 1024;
 
   set_mux_ch(7);
   delayMicroseconds(1);
-  channels->ch_a7 = (float) analogRead(A0) * 3.2 * CALIB_GAIN / 1024;
+  channels->ch_a7 = (float) analogRead(A0) * 3.2 * ADC_CALIB_GAIN / 1024;
 }
 
 //*****************************************************************************
@@ -240,8 +234,8 @@ void acquire_and_process_analog_channels(struct channels_t *channels) {
 
   //scale values and compute power and sums
   for (int j = 0; j < NSAMPLES; j++) {
-    v[j] = (float) buf0[j] * (3.2 * CALIB_GAIN / 1024);
-    i[j] = (float) buf1[j] * (3.2 * CALIB_GAIN / 1024);
+    v[j] = (float) buf0[j] * (3.2 * ADC_CALIB_GAIN / 1024);
+    i[j] = (float) buf1[j] * (3.2 * ADC_CALIB_GAIN / 1024);
     p[j] = v[j] * i[j];
     sum_v += v[j];
     sum_i += i[j];
@@ -417,4 +411,31 @@ void spiWrite(byte value) {
   digitalWrite(PIN_SPI_SSn, HIGH);
 }
 
+//*****************************************************************************
+
+void splitIPaddress(char *ipstr, byte *addr3, byte *addr2, byte *addr1, byte *addr0) {
+  //TODO: split using regexpr
+  *addr3 = 150;
+  *addr2 = 145;
+  *addr1 = 127;
+  *addr0 = 37;
+}
+
+//*****************************************************************************
+
+void buildIPaddress(char *ipstr, byte addr3, byte addr2, byte addr1, byte addr0) {
+  sprintf(ipstr, "%u.%u.%u.%u", addr3, addr2, addr1, addr0);
+}
+
+//*****************************************************************************
+void splitIPport(unsigned int port, byte *hi, byte *lo) {
+  *hi = (port & 0x0000FF00) >> 8;
+  *lo = (port & 0x000000FF);
+}
+
+//*****************************************************************************
+
+unsigned int buildIPport(byte hi, byte lo) {
+  return (((unsigned int) hi << 8) + lo);
+}
 
