@@ -6,13 +6,11 @@
 #include "DHT.h"
 DHT dht(PIN_1WIRE, DHT22);
 
-
 WiFiClient espClient;
 PubSubClient client(espClient);
 
 //global variables
 //default wemos parameters
-static const byte cmd = 99; //togliere
 static const byte board_id = 33;
 static const byte board_type = 0xF0;
 
@@ -32,10 +30,8 @@ static unsigned int mqtt_port = 8883;
 static struct config_data_t config_data;
 static byte *aconfig_data = (byte *) &config_data; //alias of config_data as an array
 static char mybuffer[200]; //a buffer to build formatted strings
-static byte rxdata[EEPROM_SIZE + 8];
+static byte rxdata[RXDATA_BUFSIZE];
 static unsigned int rxdatalen;
-
-String tmp = "";
 
 
 //*****************************************************************************
@@ -43,11 +39,8 @@ String tmp = "";
 void mqtt_callback(char* topic, byte* payload, unsigned int length) {
   int i;
 
-  if (VERBOSE) {
-    Serial.print("msg received on topic ");
-    Serial.print(topic);
-    Serial.println(":");
-  }
+  Serial.print("msg received on topic ");
+  Serial.println(topic);
 
   unsigned int min_length = (length + 1) < sizeof(rxdata) ? (length + 1) : sizeof(rxdata);
   snprintf((char *) rxdata, min_length, "%s", (char *) payload);
@@ -202,7 +195,9 @@ void setup()
   //if we only want to program the eeprom...
   if (PROGRAM_EEPROM) {
     //program config_data in eeprom
-    if (program_eeprom(&config_data)) {
+    bool b = program_eeprom(aconfig_data);
+    Serial.println("Please reset the board...");
+    if (b) {
       toggle_confirmation_led(PIN_LED); // do not return
     }
     else {
@@ -213,10 +208,10 @@ void setup()
   //otherwise read config data from eeprom, if not in debug mode
   if (!DEBUG_FAKE_EEPROM) {
     //retrieve config data from eeprom
-    //read_config_data_from_eeprom(&config_data); //TODO:
+    //read_config_data_from_eeprom(&config_data); //TODO: to be implemented
   }
 
-  //check for correctness of eeprom data
+  //check for correctness of eeprom data by testing board_type
   if ((config_data.board_type != 0xF0) && (config_data.board_type != 0xFE)) {
     Serial.println("Unknown board type or empty EEPROM!");
     toggle_error_led(PIN_LED); // do not return
@@ -251,11 +246,12 @@ void setup()
   //send welcome msg and subscribe to config manager's topic
   snprintf(mybuffer, sizeof(mybuffer), "wemos_%u_%u", config_data.board_id, config_data.board_type);
   client.publish("/welcome", mybuffer); //topic, payload
-  Serial.println("Welcome message sent");
+  Serial.print("Welcome message sent: ");
+  Serial.println(mybuffer);
   client.subscribe("/requestWelcomeToServer"); //config data TODO: cambiare nome
   client.subscribe("/request"); //TODO: quale dei due?
 
-  Serial.println("End of setup");
+  if (VERBOSE) Serial.println("setup completed");
   Serial.println();
 }
 
@@ -271,56 +267,66 @@ void loop() {
   static byte *atxdata = (byte *) &txdata; //alias of txdata as an array
 
   initial_time_us = micros();
-  if (VERBOSE) Serial.println("starting loop...");
-  delayMicroseconds(10);
 
   //STEP 1: process new messages
   client.loop();
   if (DEBUG_FAKE_MSG && toggle_flag) {
-    mqtt_callback("Prova", (byte *) "abcdefghijklmnopqrstuvwxyz789012\xB7\xF9", 34);
+    mqtt_callback("Prova", (byte *) "\x68\xFF", 2);
+    //mqtt_callback("Prova", (byte *) "\x63\x21""12efghijklmnopqrstuvwxyz789012\xB7\xF9", 34);
+    //mqtt_callback("Prova", (byte *) "\x05\x21\x17\x09\x30\x16\x45\x02", 8);
   }
 
-  if (rxdatalen != 0) { // if msg arrived
+  if ((rxdatalen != 0) && ((rxdata[1] == 0xFF) || (rxdata[1] == config_data.board_id))) {
+    // if msg arrived and it is for this wemos or a broadcast msg
+    start_time_us = micros();
     if (rxdata[0] == MSG_ID_WHO_ARE_YOU) {
       snprintf(mybuffer, sizeof(mybuffer), "wemos_%u_%u", config_data.board_id, config_data.board_type);
+      if (!client.connected()) {
+        // reconnect to server mqtt
+        mqtt_reconnect("WemosClient", config_data.MQTT_user, config_data.MQTT_pwd); //tutte le Wemos hanno lo stesso id?
+      }
       client.publish("/welcome", mybuffer); //topic, payload
-      Serial.println("Welcome message sent");
+      Serial.print("Welcome message sent: ");
+      Serial.println(mybuffer);
     }
     else if (rxdata[0] == MSG_ID_CONFIG) {
+      //store config_data in EEPROM
+      aconfig_data = &rxdata[2];
+      program_eeprom(aconfig_data);
+      Serial.println("Trying to reset the board...");
+      ESP.restart();
+    }
+    else if (rxdata[0] == MSG_ID_SETDATETIME) {
       start_time_us = micros();
       //program RTCC
-      //    WriteI2CByte(RTCC_ADDR, 0x00, 0x00);    //stop RTCC and reset seconds
-      //    WriteI2CByte(RTCC_ADDR, 0x06, config_data.yy);
-      //    WriteI2CByte(RTCC_ADDR, 0x05, config_data.mth);
-      //    WriteI2CByte(RTCC_ADDR, 0x04, config_data.dd);
-      //    WriteI2CByte(RTCC_ADDR, 0x02, config_data.hh);
-      //    WriteI2CByte(RTCC_ADDR, 0x01, config_data.mm);
-      //    WriteI2CByte(RTCC_ADDR, 0x00, config_data.ss | 0x80);  //write seconds and start RTCC
+      WriteI2CByte(RTCC_ADDR, 0x00, 0x00);    //stop RTCC and reset seconds
+      WriteI2CByte(RTCC_ADDR, 0x06, rxdata[2]);
+      WriteI2CByte(RTCC_ADDR, 0x05, rxdata[3]);
+      WriteI2CByte(RTCC_ADDR, 0x04, rxdata[4]);
+      WriteI2CByte(RTCC_ADDR, 0x02, rxdata[5]);
+      WriteI2CByte(RTCC_ADDR, 0x01, rxdata[6]);
+      WriteI2CByte(RTCC_ADDR, 0x00, rxdata[7] | 0x80);  //write seconds and start RTCC
       Serial.println("RTCC programmed");
-      delayMicroseconds(10);
-
-      //store config_data in EEPROM
-      //    if (!program_eeprom(&config_data)) {
-      //      toggle_error_led(PIN_LED); // do not return
-      //    }
-
-      stop_time_us = micros();
-      print_elapsed_time("msg processing finished in ", start_time_us, stop_time_us);
+      Serial.println("current date/time:");
+      timestamp();
     }
     else {
-      Serial.println("Unknown message!");
+      Serial.println("Unknown msg id!");
     }
-    rxdatalen = 0; // mark the msg as read
+    stop_time_us = micros();
+    if (PRINT_EXEC_TIME)
+      print_elapsed_time("msg processing finished in ", start_time_us, stop_time_us);
   }
+  rxdatalen = 0; // mark the msg as read
 
   //STEP 2: acquire data from hw sensors
   //acquire analog channels
-  if (config_data.board_type == 'E') {
-    //acquire ch_0 and ch_1 and compute other quantities
+  if (config_data.board_type == 0xFE) {
+    //acquire V and I and compute electrical quantities
     start_time_us = micros();
     acquire_and_process_analog_channels(&channels);
     stop_time_us = micros();
-    if (VERBOSE)
+    if (PRINT_EXEC_TIME)
       print_elapsed_time("electrical acquisition finished in ", start_time_us, stop_time_us);
   }
   else {
@@ -328,26 +334,38 @@ void loop() {
     start_time_us = micros();
     acquire_raw_analog_channels(&channels);
     stop_time_us = micros();
-    if (VERBOSE)
-      print_elapsed_time("analog ch acquisition finished in ", start_time_us, stop_time_us);
+    if (PRINT_EXEC_TIME)
+      print_elapsed_time("raw analog acquisition finished in ", start_time_us, stop_time_us);
+    if (VERBOSE) {
+      Serial.println("Results:");
+      Serial.println(channels.ch_a0, 6);
+      Serial.println(channels.ch_a1, 6);
+      Serial.println(channels.ch_a2, 6);
+      Serial.println(channels.ch_a3, 6);
+      Serial.println(channels.ch_a4, 6);
+      Serial.println(channels.ch_a5, 6);
+      Serial.println(channels.ch_a6, 6);
+      Serial.println(channels.ch_a7, 6);
+    }
   }
+
   //acquire 1-Wire data
   start_time_us = micros();
   channels.ch_1wire = dht.readTemperature();
   stop_time_us = micros();
-  if (VERBOSE)
+  if (PRINT_EXEC_TIME)
     print_elapsed_time("1-Wire acquisition finished in ", start_time_us, stop_time_us);
 
   //acquire I2C data
   start_time_us = micros();
   channels.ch_i2c = ReadI2CByte(I2C_SENSOR_ADDR, I2C_SENSOR_REG);
   stop_time_us = micros();
-  if (VERBOSE)
+  if (PRINT_EXEC_TIME)
     print_elapsed_time("I2C acquisition finished in ", start_time_us, stop_time_us);
 
   //acquire SPI data
   start_time_us = micros();
-  channels.ch_spi = 0.0;  // to be defined
+  channels.ch_spi = 0.0;  //TODO: to be defined
   { // to be removed
     toggle_flag = !toggle_flag;
     if (toggle_flag) {
@@ -358,14 +376,14 @@ void loop() {
     }
   }
   stop_time_us = micros();
-  if (VERBOSE)
+  if (PRINT_EXEC_TIME)
     print_elapsed_time("SPI acquisition finished in ", start_time_us, stop_time_us);
 
   //STEP 3: retrieve timestamp and prepare data
   byte data;
 
   start_time_us = micros();
-  //txdata.cmd = MSG_ID_DATA;
+  txdata.cmd = MSG_NEWDATA;
   txdata.board_id = config_data.board_id;
   txdata.board_type = config_data.board_type;
 
@@ -383,64 +401,47 @@ void loop() {
   data = ReadI2CByte(RTCC_ADDR, 0); // get seconds from rtc
   txdata.ss = data & 0xff >> (1);
 
-
-
-
-  { // to be removed
-    int temp = 0x3F9E0652;
-    achannels[0] = *((float *) (&temp)); //1.2345678806304931640625
-  }
   int *pint = NULL;
   for (int i = 0; i < LEN_CHANNELS; i++) {
     //store the 4 bytes of the float number consecutively
+    //byte order is big endian
     pint = (int *) &achannels[i];
-    // byte order is big endian
     atxdata[CH_START_INDEX + 4 * i + 0] = (byte) ((*pint & 0xFF000000) >> 24);
     atxdata[CH_START_INDEX + 4 * i + 1] = (byte) ((*pint & 0x00FF0000) >> 16);
     atxdata[CH_START_INDEX + 4 * i + 2] = (byte) ((*pint & 0x0000FF00) >> 8);
     atxdata[CH_START_INDEX + 4 * i + 3] = (byte) ((*pint & 0x000000FF) >> 0);
   }
-  txdata.ch_a0 = 1.2345; // to be removed
+
   stop_time_us = micros();
-  if (VERBOSE)
+  if (PRINT_EXEC_TIME)
     print_elapsed_time("data preparing finished in ", start_time_us, stop_time_us);
+
+  if (VERBOSE) {
+    int i;
+    Serial.println("TXDATA:");
+    for (i = 0; i < LEN_TXDATA; i++) {
+      snprintf(mybuffer, sizeof(mybuffer), "0x%02x, ", atxdata[i]);
+      Serial.print(mybuffer);
+      if ((i != 0) && (i % 32 == 31)) Serial.println();
+    }
+    if (i % 32 != 0) Serial.println();
+  }
 
   //STEP 4: send TxData to broker
   start_time_us = micros();
-  //... send LEN_TXDATA bytes
-  if (VERBOSE) {
-    for (int i = 0; i < LEN_TXDATA - 1; i++) {
-      //snprintf(mybuffer, sizeof(mybuffer), "0x%02x, ", atxdata[i]);
-      //Serial.println(atxdata[i],HEX);
-      //      if (i>2 && i<9) tmp+=String(atxdata[i],HEX);
-      //      else tmp+= (atxdata[i]);
-      //tmp+=" ";
-      tmp += atxdata[i];
-    }
-    //snprintf(mybuffer, sizeof(mybuffer), "0x%02x\n", atxdata[LEN_TXDATA - 1]);
-    tmp += atxdata[LEN_TXDATA - 1];
-    delayMicroseconds(10);
-  }
-  tmp[0] = 17;
-  tmp[1] = 255;
-  tmp[2] = 0x63;
   if (!client.connected()) {
-    mqtt_reconnect(0, 0, 0); // reconnect to server mqtt
+    // reconnect to server mqtt
+    mqtt_reconnect("WemosClient", config_data.MQTT_user, config_data.MQTT_pwd); //tutte le Wemos hanno lo stesso id?
   }
-  tmp.toCharArray(mybuffer, 200);
-  //Serial.println(mybuffer);
-  client.publish("wemos0/data", (byte *) &txdata, LEN_TXDATA);
-  tmp = "";
-  Serial.println(mybuffer);
-  memset(mybuffer, 0, 200);
-  delayMicroseconds(10);
+  client.publish("wemos0/data", atxdata, LEN_TXDATA); // check topic
+  Serial.println("data sent");
   stop_time_us = micros();
-  if (VERBOSE)
+  if (PRINT_EXEC_TIME)
     print_elapsed_time("sending msg finished in ", start_time_us, stop_time_us);
 
   //print total time
   stop_time_us = micros();
-  print_elapsed_time("loop iteration finished in ", initial_time_us, stop_time_us);
+  print_elapsed_time("loop iteration took ", initial_time_us, stop_time_us);
   Serial.println();
 
   //wait delta time
@@ -449,11 +450,9 @@ void loop() {
     delayMicroseconds(deltaT);
   }
   else {
-    //snprintf(mybuffer, sizeof(mybuffer), "cannot finish loop within %d us. system halted.", TLOOP_US);
-    //Serial.println(mybuffer);
-    delayMicroseconds(10);
-    //while(1);
+    snprintf(mybuffer, sizeof(mybuffer), "cannot finish loop within %d us. system halted.", TLOOP_US);
+    Serial.println(mybuffer);
+    toggle_error_led(PIN_LED); // do not return
   }
 }
-
 

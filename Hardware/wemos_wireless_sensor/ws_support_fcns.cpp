@@ -9,7 +9,7 @@
 //function implementations
 void read_config_data_from_eeprom(struct config_data_t *config_data) {
   //read data and store them into config_data
-//  config_data->cmd = ReadI2CByte(EEPROM_ADDR, 0x00);
+  //  config_data->cmd = ReadI2CByte(EEPROM_ADDR, 0x00);
   config_data->board_id = ReadI2CByte(EEPROM_ADDR, 0x01);
   config_data->board_type = ReadI2CByte(EEPROM_ADDR, 0x02);
   config_data->MQTT_IPaddr_3 = ReadI2CByte(EEPROM_ADDR, 0x03);
@@ -18,47 +18,52 @@ void read_config_data_from_eeprom(struct config_data_t *config_data) {
   config_data->MQTT_IPaddr_0 = ReadI2CByte(EEPROM_ADDR, 0x06);
   config_data->MQTT_port_1 = ReadI2CByte(EEPROM_ADDR, 0x07);
   config_data->MQTT_port_0 = ReadI2CByte(EEPROM_ADDR, 0x08);
-//  config_data->yy = 0;
-//  config_data->mth = 0;
-//  config_data->dd = 0;
-//  config_data->hh = 0;
-//  config_data->mm = 0;
-//  config_data->ss = 0;
+  //  config_data->yy = 0;
+  //  config_data->mth = 0;
+  //  config_data->dd = 0;
+  //  config_data->hh = 0;
+  //  config_data->mm = 0;
+  //  config_data->ss = 0;
 }
-  
+
 //*****************************************************************************
 //
-bool program_eeprom(struct config_data_t *config_data) {
+bool program_eeprom(byte *aconfig_data) {
   byte data;
-  byte *aconfig_data = (byte *) config_data;
 
   //program
-  for (int i = 0; i < LEN_CONFIG_DATA_EE; i++) {
-    WriteI2CByte(EEPROM_ADDR, 0x00 + i, aconfig_data[i]);
+  if (!DEBUG_FAKE_EEPROM) {
+    for (int i = 0; i < LEN_CONFIG_DATA_EE; i++) {
+      WriteI2CByte(EEPROM_ADDR, 0x00 + i, aconfig_data[i]);
+      delayMicroseconds(10);
+    }
+  }
+  else {
+    Serial.println("Simulated EEPROM:");
+    char mybuffer[200];
+    for (int offset = 0; offset < 16; offset++) {
+      for (int i = 0; i < 32; i++) {
+        snprintf(mybuffer, sizeof(mybuffer), "0x%02x, ", aconfig_data[offset * 32 + i]);
+        Serial.print(mybuffer);
+      }
+      Serial.println();
+    }
   }
   Serial.println("EEPROM programmed!");
-  delayMicroseconds(10);
-  //verify
-  for (int i = 0; i < LEN_CONFIG_DATA_EE; i++) {
-    data = ReadI2CByte(EEPROM_ADDR, 0x00 + i);
-    Serial.println(data);
-    if (data != aconfig_data[i]) {
-      Serial.println("EEPROM failed verify!");
-      delayMicroseconds(10);
-      //return false;
-    }
-  }
 
-  char mybuffer[200]; //a buffer to build formatted strings
-  for (int offset = 0; offset < 16; offset++) {
-    for (int i = 0; i < 32; i++) {
-      snprintf(mybuffer, sizeof(mybuffer), "0x%02x, ", aconfig_data[offset*32 + i]);
-      Serial.print(mybuffer);
+  //verify
+  if (!DEBUG_FAKE_EEPROM) {
+    for (int i = 0; i < LEN_CONFIG_DATA_EE; i++) {
+      data = ReadI2CByte(EEPROM_ADDR, 0x00 + i);
+      delayMicroseconds(10);
+      Serial.println(data); // to be removed
+      if (data != aconfig_data[i]) {
+        Serial.println("EEPROM failed verify!");
+        return false;
+      }
     }
-    Serial.println();
   }
   Serial.println("EEPROM verified!");
-  delayMicroseconds(10);
   return true;
 }
 
@@ -127,7 +132,7 @@ void set_mux_ch(unsigned int ch) {
     case 0:
       digitalWrite(PIN_MUX_S0, LOW);
       digitalWrite(PIN_MUX_S1, LOW);
-      digitalWrite(PIN_MUX_S2 ,LOW);
+      digitalWrite(PIN_MUX_S2 , LOW);
       break;
     case 1:
       digitalWrite(PIN_MUX_S0, HIGH);
@@ -177,35 +182,35 @@ void set_mux_ch(unsigned int ch) {
 void acquire_raw_analog_channels(struct channels_t *channels) {
   set_mux_ch(0);
   delayMicroseconds(1);
-  channels->ch_a0 = (float) analogRead(A0)*3.2*CALIB_GAIN/1024;
+  channels->ch_a0 = (float) analogRead(A0) * 3.2 * CALIB_GAIN / 1024;
 
   set_mux_ch(1);
   delayMicroseconds(1);
-  channels->ch_a1 = (float) analogRead(A0)*3.2*CALIB_GAIN/1024;
+  channels->ch_a1 = (float) analogRead(A0) * 3.2 * CALIB_GAIN / 1024;
 
   set_mux_ch(2);
   delayMicroseconds(1);
-  channels->ch_a2 = (float) analogRead(A0)*3.2*CALIB_GAIN/1024;
+  channels->ch_a2 = (float) analogRead(A0) * 3.2 * CALIB_GAIN / 1024;
 
   set_mux_ch(3);
   delayMicroseconds(1);
-  channels->ch_a3 = (float) analogRead(A0)*3.2*CALIB_GAIN/1024;
+  channels->ch_a3 = (float) analogRead(A0) * 3.2 * CALIB_GAIN / 1024;
 
   set_mux_ch(4);
   delayMicroseconds(1);
-  channels->ch_a4 = (float) analogRead(A0)*3.2*CALIB_GAIN/1024;
+  channels->ch_a4 = (float) analogRead(A0) * 3.2 * CALIB_GAIN / 1024;
 
   set_mux_ch(5);
   delayMicroseconds(1);
-  channels->ch_a5 = (float) analogRead(A0)*3.2*CALIB_GAIN/1024;
+  channels->ch_a5 = (float) analogRead(A0) * 3.2 * CALIB_GAIN / 1024;
 
   set_mux_ch(6);
   delayMicroseconds(1);
-  channels->ch_a6 = (float) analogRead(A0)*3.2*CALIB_GAIN/1024;
+  channels->ch_a6 = (float) analogRead(A0) * 3.2 * CALIB_GAIN / 1024;
 
   set_mux_ch(7);
   delayMicroseconds(1);
-  channels->ch_a7 = (float) analogRead(A0)*3.2*CALIB_GAIN/1024;
+  channels->ch_a7 = (float) analogRead(A0) * 3.2 * CALIB_GAIN / 1024;
 }
 
 //*****************************************************************************
@@ -230,9 +235,9 @@ void acquire_and_process_analog_channels(struct channels_t *channels) {
     buf0[j] = analogRead(A0);
     set_mux_ch(1);
     delayMicroseconds(1);
-    buf1[j] = analogRead(A0);  
+    buf1[j] = analogRead(A0);
   }
-    
+
   //scale values and compute power and sums
   for (int j = 0; j < NSAMPLES; j++) {
     v[j] = (float) buf0[j] * (3.2 * CALIB_GAIN / 1024);
@@ -247,7 +252,7 @@ void acquire_and_process_analog_channels(struct channels_t *channels) {
   Vmean = sum_v / NSAMPLES;
   Imean = sum_i / NSAMPLES;
   P = sum_p / NSAMPLES;
-  
+
   //remove mean value and compute sums of squared elements
   for (int j = 0; j < NSAMPLES; j++) {
     v[j] -= Vmean;
@@ -285,23 +290,23 @@ void acquire_and_process_analog_channels(struct channels_t *channels) {
 
   if (1) {
     /*
-    Serial.print("Vmean: ");
-    Serial.println(Vmean, 3);
-    Serial.print("Vrms: ");
-    Serial.println(Vrms, 3);
-    Serial.print("Imean: ");
-    Serial.println(Imean, 3);
-    Serial.print("Irms: ");
-    Serial.println(Irms, 3);
-    Serial.print("A: ");
-    Serial.println(A, 2);
-    Serial.print("P: ");
-    Serial.println(P, 2);
-    Serial.print("T: ");
-    Serial.println(T, 5);
-    Serial.print("f: ");
-    Serial.println(f, 5);
-    delayMicroseconds(10);
+      Serial.print("Vmean: ");
+      Serial.println(Vmean, 3);
+      Serial.print("Vrms: ");
+      Serial.println(Vrms, 3);
+      Serial.print("Imean: ");
+      Serial.println(Imean, 3);
+      Serial.print("Irms: ");
+      Serial.println(Irms, 3);
+      Serial.print("A: ");
+      Serial.println(A, 2);
+      Serial.print("P: ");
+      Serial.println(P, 2);
+      Serial.print("T: ");
+      Serial.println(T, 5);
+      Serial.print("f: ");
+      Serial.println(f, 5);
+      delayMicroseconds(10);
     */
   }
 }
@@ -334,22 +339,26 @@ float compute_period(float *v, float *signs) {
 }
 
 //*****************************************************************************
-// Return the date as a string in format dd:mm:yy
+// Return the date as a string in format dd:mm:yyyy
 String rtcDate(void) {
   unsigned char data;
 
   data = ReadI2CByte(RTCC_ADDR, 4); // get day from rtc
-  int day = data & 0xff >> (2);
+  byte day = data & 0xff >> (2);
   data = ReadI2CByte(RTCC_ADDR, 5); // get month from rtc
-  int month = data & 0xff >> (3);
+  byte month = data & 0xff >> (3);
   data = ReadI2CByte(RTCC_ADDR, 6); // get year from rtc
-  int year = data & 0xff >> (0);
-  //build date string
+  byte year = data & 0xff >> (0);
+
   String rtcDate;
+  if (day < 10) rtcDate += "0";
   rtcDate += String(day, HEX);
-  rtcDate += ":";
+  rtcDate += "/";
+  if (month < 10) rtcDate += "0";
   rtcDate += String(month, HEX);
-  rtcDate += ":";
+  rtcDate += "/";
+  rtcDate += "20";
+  if (year < 10) rtcDate += "0";
   rtcDate += String(year, HEX);
   return rtcDate;
 }
@@ -360,32 +369,27 @@ String rtcTime(void) {
   unsigned char data;
 
   data = ReadI2CByte(RTCC_ADDR, 2); // get hours from rtc
-  int hour = data & 0xff >> (2);
+  byte hour = data & 0xff >> (2);
   data = ReadI2CByte(RTCC_ADDR, 1); // get minutes from rtc
-  int minute = data & 0xff >> (1);
+  byte minute = data & 0xff >> (1);
   data = ReadI2CByte(RTCC_ADDR, 0); // get seconds from rtc
-  int second = data & 0xff >> (1);
+  byte second = data & 0xff >> (1);
+
   String rtcTime;
-  if (hour < 10) {
-    rtcTime += "0";
-  }
+  if (hour < 10) rtcTime += "0";
   rtcTime += String(hour, HEX);
   rtcTime += ":";
-  if (minute < 10) {
-    rtcTime += "0";
-  }
+  if (minute < 10) rtcTime += "0";
   rtcTime += String(minute, HEX);
   rtcTime += ":";
-  if (second < 10) {
-    rtcTime += "0";
-  }
+  if (second < 10) rtcTime += "0";
   rtcTime += String(second, HEX);
   return rtcTime;
 }
 
 //*****************************************************************************
 
-void timeStamp(void) {
+void timestamp(void) {
   Serial.print(rtcDate());
   Serial.print("  -  ");
   Serial.println(rtcTime());
@@ -395,10 +399,10 @@ void timeStamp(void) {
 //*****************************************************************************
 
 void print_elapsed_time(String msg, unsigned long start_time_us, unsigned long stop_time_us) {
-  //Serial.print(msg);
-  //Serial.print(stop_time_us - start_time_us);
- // Serial.println(" us");
-  //delayMicroseconds(10);
+  Serial.print(msg);
+  Serial.print(stop_time_us - start_time_us);
+  Serial.println(" us");
+  delayMicroseconds(10);
 }
 
 //*****************************************************************************
