@@ -344,7 +344,7 @@ void loop() {
       print_elapsed_time("raw analog acquisition finished in ", start_time_us, stop_time_us);
   }
   if (VERBOSE) {
-    Serial.println("Results:");
+    Serial.println("Analog meas.:");
     Serial.println(channels.ch_a0, 6);
     Serial.println(channels.ch_a1, 6);
     Serial.println(channels.ch_a2, 6);
@@ -361,7 +361,11 @@ void loop() {
   stop_time_us = micros();
   if (PARTIAL_EXEC_TIME)
     print_elapsed_time("1-Wire acquisition finished in ", start_time_us, stop_time_us);
-
+  if (VERBOSE) {
+    Serial.println("T meas.:");
+    Serial.println(channels.ch_1wire, 3);
+  }
+  
   //acquire I2C data
   start_time_us = micros();
   channels.ch_i2c = ReadI2CByte(I2C_SENSOR_ADDR, I2C_SENSOR_REG);
