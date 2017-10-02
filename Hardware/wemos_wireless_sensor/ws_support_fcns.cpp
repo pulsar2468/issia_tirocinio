@@ -66,6 +66,7 @@ void read_config_data_from_eeprom(byte *aconfig_data) {
 
 //*****************************************************************************
 // Called to read bytes from I2C
+// http://www.hobbytronics.co.uk/arduino-external-eeprom
 byte ReadI2CByte(byte addr, byte reg) {
   byte data = 0xFF;
 
@@ -87,6 +88,7 @@ byte ReadI2CByte(byte addr, byte reg) {
 
 //*****************************************************************************
 // Called to write bytes to I2C
+// http://www.hobbytronics.co.uk/arduino-external-eeprom
 void WriteI2CByte(byte addr, byte reg, byte data) {
   Wire.beginTransmission(addr);
   Wire.write(reg);
@@ -191,35 +193,35 @@ void set_mux_ch(unsigned int ch) {
 
 void acquire_raw_analog_channels(struct channels_t *channels) {
   set_mux_ch(0);
-  delayMicroseconds(1);
+  delayMicroseconds(4);
   channels->ch_a0 = (float) analogRead(A0) * 3.2 * ADC_CALIB_GAIN / 1024;
 
   set_mux_ch(1);
-  delayMicroseconds(1);
+  delayMicroseconds(4);
   channels->ch_a1 = (float) analogRead(A0) * 3.2 * ADC_CALIB_GAIN / 1024;
 
   set_mux_ch(2);
-  delayMicroseconds(1);
+  delayMicroseconds(4);
   channels->ch_a2 = (float) analogRead(A0) * 3.2 * ADC_CALIB_GAIN / 1024;
 
   set_mux_ch(3);
-  delayMicroseconds(1);
+  delayMicroseconds(4);
   channels->ch_a3 = (float) analogRead(A0) * 3.2 * ADC_CALIB_GAIN / 1024;
 
   set_mux_ch(4);
-  delayMicroseconds(1);
+  delayMicroseconds(4);
   channels->ch_a4 = (float) analogRead(A0) * 3.2 * ADC_CALIB_GAIN / 1024;
 
   set_mux_ch(5);
-  delayMicroseconds(1);
+  delayMicroseconds(4);
   channels->ch_a5 = (float) analogRead(A0) * 3.2 * ADC_CALIB_GAIN / 1024;
 
   set_mux_ch(6);
-  delayMicroseconds(1);
+  delayMicroseconds(4);
   channels->ch_a6 = (float) analogRead(A0) * 3.2 * ADC_CALIB_GAIN / 1024;
 
   set_mux_ch(7);
-  delayMicroseconds(1);
+  delayMicroseconds(4);
   channels->ch_a7 = (float) analogRead(A0) * 3.2 * ADC_CALIB_GAIN / 1024;
 }
 
@@ -241,10 +243,10 @@ void acquire_and_process_v_and_i(struct channels_t *channels) {
   //store NSAMPLES samples of V and I in buf0 and buf1
   for (int j = 0; j < NSAMPLES; j++) {
     set_mux_ch(0);
-    delayMicroseconds(1);
+    delayMicroseconds(4);
     buf0[j] = analogRead(A0);
     set_mux_ch(1);
-    delayMicroseconds(1);
+    delayMicroseconds(4);
     buf1[j] = analogRead(A0);
   }
 

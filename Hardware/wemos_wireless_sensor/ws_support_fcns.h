@@ -1,5 +1,4 @@
 //ws_support_fcns.h
-//http://www.hobbytronics.co.uk/arduino-external-eeprom
 
 #ifndef WS_SUPPORT_FCNS_H_
 #define WS_SUPPORT_FCNS_H_
@@ -43,7 +42,7 @@
 #define NSAMPLES 1000
 #define TSAMPLE_US 200
 //sampling freq. is 5 kHz (max 8 kHz)
-#define ADC_CALIB_GAIN 1.0564
+#define ADC_CALIB_GAIN 1.0625
 //#define ADC_CALIB_GAIN 1
 
 

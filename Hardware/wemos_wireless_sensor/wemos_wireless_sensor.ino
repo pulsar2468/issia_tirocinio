@@ -12,7 +12,7 @@ PubSubClient client(espClient);
 
 //global variables
 //default wemos parameters
-static const byte default_board_id = 33;
+static const byte default_board_id = 0x21;
 static const byte default_board_type = 0xF0;
 //board_type = 0x00 means unprogrammed board
 
