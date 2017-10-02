@@ -238,7 +238,7 @@ void acquire_and_process_v_and_i(struct channels_t *channels) {
   float sum_p = 0.0;
   float sum_squared_v = 0.0;
   float sum_squared_i = 0.0;
-  float Vdc, Vrms, Idc, Irms, Pdc, A, P, T;
+  float Vdc, Vrms, Idc, Irms, Pdc, P, A, T;
 
   //store NSAMPLES samples of V and I in buf0 and buf1
   for (int j = 0; j < NSAMPLES; j++) {
@@ -254,23 +254,20 @@ void acquire_and_process_v_and_i(struct channels_t *channels) {
   for (int j = 0; j < NSAMPLES; j++) {
     v[j] = ((float) buf0[j]) * (3.2 * ADC_CALIB_GAIN / 1024);
     i[j] = ((float) buf1[j]) * (3.2 * ADC_CALIB_GAIN / 1024);
-    p[j] = v[j] * i[j];
     sum_v += v[j];
     sum_i += i[j];
-    sum_p += p[j];
   }
 
   //compute Vdc, Idc, Pdc
   Vdc = sum_v / NSAMPLES;
   Idc = sum_i / NSAMPLES;
-  Pdc = sum_p / NSAMPLES;
+  Pdc = Vdc * Idc;
 
   //remove mean values and compute sums of squared elements
-  sum_p = 0;
   for (int j = 0; j < NSAMPLES; j++) {
-    v[j] -= Vdc;
-    i[j] -= Idc;
-    p[j] = v[j] * i[j];
+    v[j] -= Vdc; //v_ac
+    i[j] -= Idc; //i_ac
+    p[j] = v[j] * i[j]; //p_ac
     sum_squared_v += pow(v[j], 2);
     sum_squared_i += pow(i[j], 2);
     sum_p += p[j];
@@ -291,8 +288,8 @@ void acquire_and_process_v_and_i(struct channels_t *channels) {
   channels->ch_a2 = Idc;
   channels->ch_a3 = Irms;
   channels->ch_a4 = Pdc;
-  channels->ch_a5 = A;
-  channels->ch_a6 = P;
+  channels->ch_a5 = P;
+  channels->ch_a6 = A;
   channels->ch_a7 = T;
 }
 

@@ -334,6 +334,25 @@ void loop() {
     stop_time_us = micros();
     if (PARTIAL_EXEC_TIME)
       print_elapsed_time("electrical acquisition finished in ", start_time_us, stop_time_us);
+    if (VERBOSE) {
+      Serial.println("Electrical meas.:");
+      Serial.print("Vdc=");
+      Serial.println(channels.ch_a0, 6);
+      Serial.print("Vrms=");
+      Serial.println(channels.ch_a1, 6);
+      Serial.print("Idc=");      
+      Serial.println(channels.ch_a2, 6);
+      Serial.print("Irms=");
+      Serial.println(channels.ch_a3, 6);
+      Serial.print("Pdc=");
+      Serial.println(channels.ch_a4, 6);
+      Serial.print("P=");
+      Serial.println(channels.ch_a5, 6);
+      Serial.print("A=");
+      Serial.println(channels.ch_a6, 6);
+      Serial.print("T=");
+      Serial.println(channels.ch_a7, 6);
+    }      
   }
   else {
     //acquire raw analog signals
@@ -342,17 +361,17 @@ void loop() {
     stop_time_us = micros();
     if (PARTIAL_EXEC_TIME)
       print_elapsed_time("raw analog acquisition finished in ", start_time_us, stop_time_us);
-  }
-  if (VERBOSE) {
-    Serial.println("Analog meas.:");
-    Serial.println(channels.ch_a0, 6);
-    Serial.println(channels.ch_a1, 6);
-    Serial.println(channels.ch_a2, 6);
-    Serial.println(channels.ch_a3, 6);
-    Serial.println(channels.ch_a4, 6);
-    Serial.println(channels.ch_a5, 6);
-    Serial.println(channels.ch_a6, 6);
-    Serial.println(channels.ch_a7, 6);
+    if (VERBOSE) {
+      Serial.println("Raw analog meas.:");
+      Serial.println(channels.ch_a0, 6);
+      Serial.println(channels.ch_a1, 6);
+      Serial.println(channels.ch_a2, 6);
+      Serial.println(channels.ch_a3, 6);
+      Serial.println(channels.ch_a4, 6);
+      Serial.println(channels.ch_a5, 6);
+      Serial.println(channels.ch_a6, 6);
+      Serial.println(channels.ch_a7, 6);
+    }
   }
 
   //acquire 1-Wire data
@@ -362,7 +381,7 @@ void loop() {
   if (PARTIAL_EXEC_TIME)
     print_elapsed_time("1-Wire acquisition finished in ", start_time_us, stop_time_us);
   if (VERBOSE) {
-    Serial.println("T meas.:");
+    Serial.println("Temp. meas.:");
     Serial.println(channels.ch_1wire, 3);
   }
   
