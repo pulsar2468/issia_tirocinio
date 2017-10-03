@@ -225,11 +225,12 @@ void setup()
 
   //send welcome msg and subscribe to config manager's topic
   snprintf(mybuffer, sizeof(mybuffer), "wemos_%u_%u", config_data.board_id, config_data.board_type);
-  client.publish("/welcome", mybuffer); //topic, payload
+  client.publish("/hello", mybuffer); //topic, payload
   Serial.print("Welcome message sent: ");
   Serial.println(mybuffer);
-  client.subscribe("/requestWelcomeToServer"); //config data TODO: cambiare nome
-  client.subscribe("/request"); //TODO: quale dei due?
+  client.subscribe("/requestHello");
+  client.subscribe("/config");
+  client.subscribe("/datetime");
 
   if (VERBOSE) Serial.println("setup completed");
   Serial.println();

@@ -9,8 +9,8 @@
 //operating mode
 #define PROGRAM_EEPROM 0
 #define DEBUG_FAKE_EEPROM 0
-#define DEBUG_FAKE_BROKER 1
-#define DEBUG_FAKE_MSG 1
+#define DEBUG_FAKE_BROKER 0
+#define DEBUG_FAKE_MSG 0
 #define VERBOSE 1
 #define PARTIAL_EXEC_TIME 0
 #define TLOOP_US 1000000

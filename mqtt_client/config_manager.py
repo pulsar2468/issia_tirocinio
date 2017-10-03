@@ -11,7 +11,7 @@ try:
 
         client = paho.Client()
         client.connect("150.145.127.37", 8883)
-        client.publish("wemos0/config", "0xF5")
+        client.publish("wemos0/config", "0x63")
         flag=True #i verify if the data has been send to boards
         #pass
 

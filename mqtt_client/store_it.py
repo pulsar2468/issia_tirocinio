@@ -19,10 +19,12 @@ def store_data(client, userdata, msg):
     buffer_b=bytearray()
     buffer_b.extend(msg.payload)
     import struct
-    x=struct.unpack_from('cccc',buffer_b,9)
+    x=struct.unpack_from('!ccccccccc',buffer_b,0)
     print [ord(i) for i in x]
-    x=struct.unpack_from('!f',buffer_b,9)
-    print x
+    x=struct.unpack_from('!fffffffffff',buffer_b,9)
+    print [i for i in x]
+
+
     #global package
     #package=package+1
     '''
@@ -62,7 +64,9 @@ print("Storage module active")
 client = paho.Client()
 client.username_pw_set("issia", "cnr")
 client.connect("150.145.127.37", 8883)
-client.publish("/requestWelcomeToServer",'h',0)
+import struct
+x=struct.pack("ccc",chr(0x68),chr(0xFF),chr(0x00))
+client.publish("/requestHello",x,0)
 client.loop_start()
 client.loop_stop()
 client.disconnect()
@@ -72,7 +76,7 @@ client = paho.Client()
 client.username_pw_set("issia", "cnr")
 client.connect("150.145.127.37", 8883)
 client.subscribe("+/data", qos=0)
-client.subscribe("/welcome", qos=0)
+client.subscribe("/hello", qos=0)
 client.message_callback_add("+/data", store_data)
-client.message_callback_add("+/welcome", welcome)
+client.message_callback_add("+/hello", welcome)
 client.loop_forever()
