@@ -274,11 +274,11 @@ void loop() {
         // reconnect to server mqtt
         mqtt_reconnect("WemosClient", config_data.MQTT_user, config_data.MQTT_pwd); //tutte le Wemos hanno lo stesso id?
       }
-      client.publish("/welcome", mybuffer); //topic, payload
+      client.publish("/hello", mybuffer); //topic, payload
       Serial.print("Welcome message sent: ");
       Serial.println(mybuffer);
     }
-    else if (rxdata[0] == MSG_ID_CONFIG) {
+    if (rxdata[0] == MSG_ID_CONFIG) {
       //say goodbye to broker
       if (!client.connected()) {
         // reconnect to server mqtt
@@ -303,7 +303,7 @@ void loop() {
       Serial.println("Trying to reset the board...");
       ESP.restart();
     }
-    else if (rxdata[0] == MSG_ID_SETDATETIME) {
+    if (rxdata[0] == MSG_ID_SETDATETIME) {
       start_time_us = micros();
       //program RTCC
       WriteI2CByte(RTCC_ADDR, 0x00, 0x00);    //stop RTCC and reset seconds
