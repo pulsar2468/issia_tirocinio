@@ -17,8 +17,8 @@ static const byte default_board_type = 0xF0;
 //board_type = 0x00 means unprogrammed board
 
 //default wifi credentials
-static const char* const default_wifi_ssid = "test1";
-static const char* const default_wifi_pwd = "magic";
+static const char* const default_wifi_ssid = "issia1";
+static const char* const default_wifi_pwd = "router!?wireless";
 
 //default broker credentials
 static const char default_mqtt_addr[16] = "150.145.127.37";
@@ -463,7 +463,9 @@ void loop() {
     // reconnect to server mqtt
     mqtt_reconnect("WemosClient", config_data.MQTT_user, config_data.MQTT_pwd); //tutte le Wemos hanno lo stesso id?
   }
+  ESP.wdtEnable(0);
   client.publish("wemos0/data", atxdata, TXDATA_LEN); // check topic
+  ESP.wdtEnable(1);
   Serial.println("data sent");
   stop_time_us = micros();
   if (PARTIAL_EXEC_TIME)
