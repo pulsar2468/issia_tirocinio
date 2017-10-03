@@ -11,9 +11,9 @@
 #define DEBUG_FAKE_EEPROM 0
 #define DEBUG_FAKE_BROKER 0
 #define DEBUG_FAKE_MSG 0
-#define VERBOSE 1
-#define PARTIAL_EXEC_TIME 1
-#define TLOOP_US 2000000
+#define VERBOSE 0
+#define PARTIAL_EXEC_TIME 0
+#define TLOOP_US 1000000
 //at least 333333 for board_type=0xF0
 //at least 500000 for board_type=0xFE
 //publishing the msg requires up to 5 seconds

@@ -97,6 +97,9 @@ void mqtt_reconnect(char *clientID, char *username, char *pwd) {  // check 1st d
     Serial.print("Attempting MQTT connection... ");
     if ((DEBUG_FAKE_BROKER) || client.connect(clientID, username, pwd)) {
       Serial.println("connected");
+      client.subscribe("/requestHello");
+      client.subscribe("/config");
+      client.subscribe("/datetime");
       return;
     }
     else {
@@ -228,9 +231,6 @@ void setup()
   client.publish("/hello", mybuffer); //topic, payload
   Serial.print("Welcome message sent: ");
   Serial.println(mybuffer);
-  client.subscribe("/requestHello");
-  client.subscribe("/config");
-  client.subscribe("/datetime");
 
   if (VERBOSE) Serial.println("setup completed");
   Serial.println();
@@ -278,17 +278,17 @@ void loop() {
       Serial.print("Welcome message sent: ");
       Serial.println(mybuffer);
     }
-    if (rxdata[0] == MSG_ID_CONFIG) {
+    else if (rxdata[0] == MSG_ID_CONFIG) {
       //say goodbye to broker
       if (!client.connected()) {
         // reconnect to server mqtt
         mqtt_reconnect("WemosClient", config_data.MQTT_user, config_data.MQTT_pwd); //tutte le Wemos hanno lo stesso id?
       }
-      //unsubscribe remote client topic /request?
-      snprintf(mybuffer, sizeof(mybuffer), "wemos_%u_%u", config_data.board_id, config_data.board_type);
-      client.publish("/goodbye", mybuffer); //topic, payload
-      Serial.print("Goodbye message sent: ");
-      Serial.println(mybuffer);
+      //unsubscribe remote client topics
+      client.unsubscribe("/requestHello");
+      client.unsubscribe("/config");
+      client.unsubscribe("/datetime");
+      Serial.println("Unsubscribed from topics /requestHello, /config, and /datetime");
 
       //store config_data in EEPROM
       byte b;
@@ -303,7 +303,7 @@ void loop() {
       Serial.println("Trying to reset the board...");
       ESP.restart();
     }
-    if (rxdata[0] == MSG_ID_SETDATETIME) {
+    else if (rxdata[0] == MSG_ID_SETDATETIME) {
       start_time_us = micros();
       //program RTCC
       WriteI2CByte(RTCC_ADDR, 0x00, 0x00);    //stop RTCC and reset seconds
@@ -318,7 +318,8 @@ void loop() {
       timestamp();
     }
     else {
-      Serial.println("Unknown msg id!");
+      snprintf(mybuffer, sizeof(mybuffer), "Unknown msg id 0x%02x!", rxdata[0]);
+      Serial.println(mybuffer);
     }
     stop_time_us = micros();
     if (PARTIAL_EXEC_TIME)
@@ -331,7 +332,9 @@ void loop() {
   if (config_data.board_type == 0xFE) {
     //acquire V and I and compute electrical quantities
     start_time_us = micros();
+    noInterrupts();
     acquire_and_process_v_and_i(&channels);
+    interrupts();
     stop_time_us = micros();
     if (PARTIAL_EXEC_TIME)
       print_elapsed_time("electrical acquisition finished in ", start_time_us, stop_time_us);
@@ -358,7 +361,9 @@ void loop() {
   else {
     //acquire raw analog signals
     start_time_us = micros();
+    noInterrupts();
     acquire_raw_analog_channels(&channels);
+    interrupts();
     stop_time_us = micros();
     if (PARTIAL_EXEC_TIME)
       print_elapsed_time("raw analog acquisition finished in ", start_time_us, stop_time_us);
@@ -464,9 +469,11 @@ void loop() {
     mqtt_reconnect("WemosClient", config_data.MQTT_user, config_data.MQTT_pwd); //tutte le Wemos hanno lo stesso id?
   }
   ESP.wdtEnable(0);
+  noInterrupts();
   client.publish("wemos0/data", atxdata, TXDATA_LEN); // check topic
+  interrupts();
   ESP.wdtEnable(1);
-  Serial.println("data sent");
+  Serial.println("Newdata sent");
   stop_time_us = micros();
   if (PARTIAL_EXEC_TIME)
     print_elapsed_time("sending msg finished in ", start_time_us, stop_time_us);
@@ -483,21 +490,18 @@ void loop() {
     delayMicroseconds(deltaT);
   }
   else {
-    //say goodbye to broker
+    //publish overrun msg
     if (!client.connected()) {
       // reconnect to server mqtt
-      mqtt_reconnect("WemosClient", config_data.MQTT_user, config_data.MQTT_pwd); //tutte le Wemos hanno lo stesso id?
+      mqtt_reconnect("WemosClient", config_data.MQTT_user, config_data.MQTT_pwd);
     }
-    //unsubscribe remote client topic /request?
-    snprintf(mybuffer, sizeof(mybuffer), "wemos_%u_%u", config_data.board_id, config_data.board_type);
-    client.publish("/goodbye", mybuffer); //topic, payload
-    Serial.print("Goodbye message sent: ");
-    Serial.println(mybuffer);
+    snprintf(mybuffer, sizeof(mybuffer), "Wemos_%u: loop finished in %d us, i.e., longer than %d us",
+        config_data.board_id, (stop_time_us - initial_time_us), TLOOP_US);
+    client.publish("/overrun", mybuffer); //topic, payload
 
     //alert console user
-    snprintf(mybuffer, sizeof(mybuffer), "cannot finish loop within %d us. system halted.", TLOOP_US);
     Serial.println(mybuffer);
-    toggle_error_led(PIN_LED); // do not return
+    Serial.println();
   }
 }
 
