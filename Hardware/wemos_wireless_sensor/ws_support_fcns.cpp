@@ -10,10 +10,10 @@
 //
 bool program_eeprom(byte *aconfig_data) {
   byte data;
+
   //program
   if (!DEBUG_FAKE_EEPROM) {
     for (int i = 0; i < CONFIG_DATA_LEN; i++) {
-        //Serial.println(aconfig_data[i]);
       WriteI2CByte(EEPROM_ADDR, 0x00 + i, aconfig_data[i]);
     }
   }
@@ -58,8 +58,6 @@ void read_config_data_from_eeprom(byte *aconfig_data) {
 
   for (int j = 0; j < CONFIG_DATA_STR_NUM; j++) {
     for (int i = 0; i < CONFIG_DATA_STR_SIZE; i++) {
-      //if (ReadI2CByte(EEPROM_ADDR, CONFIG_DATA_STR_START_IDX + j * CONFIG_DATA_STR_SIZE + i) == '\0') break; // test
-
       aconfig_data[CONFIG_DATA_STR_START_IDX + j * CONFIG_DATA_STR_SIZE + i] =
         ReadI2CByte(EEPROM_ADDR, CONFIG_DATA_STR_START_IDX + j * CONFIG_DATA_STR_SIZE + i);
     }

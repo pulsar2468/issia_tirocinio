@@ -56,17 +56,16 @@ void mqtt_callback(char* topic, byte* payload, unsigned int length) {
 
   Serial.print("msg received on topic ");
   Serial.println(topic);
-  Serial.println(length);
-  Serial.println(sizeof(rxdata));
+  Serial.println(length); //togliere
+  Serial.println(sizeof(rxdata)); //togliere
 
   unsigned int min_length = (length + 1) < sizeof(rxdata) ? (length + 1) : sizeof(rxdata);
   memcpy(rxdata, payload, min_length);
-  // snprintf((char *) rxdata, min_length, "%s", (char *) payload);
   rxdatalen = min_length - 1;
 
-  if (1) {
+  if (VERBOSE) {
     for (i = 0; i < rxdatalen; i++) {
-      snprintf(mybuffer, sizeof(mybuffer), "0x%02x, ", payload[i]);
+      snprintf(mybuffer, sizeof(mybuffer), "0x%02x, ", rxdata[i]);
       Serial.print(mybuffer);
       if ((i != 0) && (i % 32 == 31)) Serial.println();
     }
@@ -106,7 +105,7 @@ void mqtt_reconnect(char *clientID, char *username, char *pwd) {  // check 1st d
       return;
     }
     else {
-      Serial.println(username);
+      Serial.println(username); //???
       Serial.print("failed, rc=");
       Serial.print(client.state());
       Serial.println(" Will try again in 5 seconds");
@@ -283,7 +282,6 @@ void loop() {
       Serial.println(mybuffer);
     }
     else if (rxdata[0] == MSG_ID_CONFIG) {
-      //say goodbye to broker
       if (!client.connected()) {
         // reconnect to server mqtt
         mqtt_reconnect("WemosClient", config_data.MQTT_user, config_data.MQTT_pwd); //tutte le Wemos hanno lo stesso id?
@@ -295,13 +293,15 @@ void loop() {
       Serial.println("Unsubscribed from topics /requestHello, /config, and /datetime");
 
       //store config_data in EEPROM
-      
-      aconfig_data = &rxdata[2]; 
-      //if (rxdata[1] == 0xFF) {
-      //  aconfig_data[0] = config_data.board_id; 
-      //}
-      program_eeprom(aconfig_data);
-      client.publish("wemos0/answer","answer");
+      aconfig_data = &rxdata[2]; //aconfig_data is not an alias of config_data anymore
+      if (rxdata[1] == 0xFF) {
+        aconfig_data[2] = config_data.board_id;
+        //if broadcast msg received, reprogram the board with its own board_id
+      }
+      bool b = program_eeprom(aconfig_data);
+      snprintf(mybuffer, sizeof(mybuffer), "wemos_%u_%u_%u", aconfig_data[2], aconfig_data[3], b); //cambiare
+      client.publish("wemos0/answer", mybuffer); //cambiare
+      Serial.println("Sent programming result to broker");
       Serial.println("Trying to reset the board...");
       ESP.restart();
     }
