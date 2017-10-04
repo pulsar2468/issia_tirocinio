@@ -60,7 +60,7 @@ def store_data(client, userdata, msg):
 
 
 
-print("Storage module active")
+print("Store_it module active")
 client = paho.Client()
 client.username_pw_set("issia", "cnr")
 client.connect("150.145.127.37", 8883)

@@ -79,6 +79,7 @@ struct {
 struct {
   byte msg_id = MSG_ID_CONFIG
   byte current_board_id or 0xFF for broadcast;
+  byte new board_id
   byte board_type;
   byte MQTT_IPaddr_3; 
   ...see below...

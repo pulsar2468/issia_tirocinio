@@ -56,14 +56,17 @@ void mqtt_callback(char* topic, byte* payload, unsigned int length) {
 
   Serial.print("msg received on topic ");
   Serial.println(topic);
+  Serial.println(length);
+  Serial.println(sizeof(rxdata));
 
   unsigned int min_length = (length + 1) < sizeof(rxdata) ? (length + 1) : sizeof(rxdata);
-  snprintf((char *) rxdata, min_length, "%s", (char *) payload);
+  memcpy(rxdata, payload, min_length);
+  // snprintf((char *) rxdata, min_length, "%s", (char *) payload);
   rxdatalen = min_length - 1;
 
-  if (VERBOSE) {
+  if (1) {
     for (i = 0; i < rxdatalen; i++) {
-      snprintf(mybuffer, sizeof(mybuffer), "0x%02x, ", rxdata[i]);
+      snprintf(mybuffer, sizeof(mybuffer), "0x%02x, ", payload[i]);
       Serial.print(mybuffer);
       if ((i != 0) && (i % 32 == 31)) Serial.println();
     }
@@ -103,6 +106,7 @@ void mqtt_reconnect(char *clientID, char *username, char *pwd) {  // check 1st d
       return;
     }
     else {
+      Serial.println(username);
       Serial.print("failed, rc=");
       Serial.print(client.state());
       Serial.println(" Will try again in 5 seconds");
@@ -291,15 +295,13 @@ void loop() {
       Serial.println("Unsubscribed from topics /requestHello, /config, and /datetime");
 
       //store config_data in EEPROM
-      byte b;
-      if (rxdata[1] == 0xFF) {
-        b = config_data.board_id;
-      }
-      aconfig_data = &rxdata[2];
-      if (rxdata[1] == 0xFF) {
-        aconfig_data[0] = b;
-      }
+      
+      aconfig_data = &rxdata[2]; 
+      //if (rxdata[1] == 0xFF) {
+      //  aconfig_data[0] = config_data.board_id; 
+      //}
       program_eeprom(aconfig_data);
+      client.publish("wemos0/answer","answer");
       Serial.println("Trying to reset the board...");
       ESP.restart();
     }
@@ -468,7 +470,7 @@ void loop() {
     // reconnect to server mqtt
     mqtt_reconnect("WemosClient", config_data.MQTT_user, config_data.MQTT_pwd); //tutte le Wemos hanno lo stesso id?
   }
-  ESP.wdtEnable(0);
+  ESP.wdtEnable(0); // rivedere watchdog ed interrupts!
   noInterrupts();
   client.publish("wemos0/data", atxdata, TXDATA_LEN); // check topic
   interrupts();
