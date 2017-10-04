@@ -53,23 +53,23 @@ static unsigned int rxdatalen;
 // retrieve new messages
 void mqtt_callback(char* topic, byte* payload, unsigned int length) {
   int i;
-
+  
   Serial.print("msg received on topic ");
   Serial.println(topic);
+  Serial.print("la lunghezza del payload è: "); //togliere
   Serial.println(length); //togliere
-  Serial.println(sizeof(rxdata)); //togliere
-
-  unsigned int min_length = (length + 1) < sizeof(rxdata) ? (length + 1) : sizeof(rxdata);
-  memcpy(rxdata, payload, min_length);
-  rxdatalen = min_length - 1;
 
   if (VERBOSE) {
-    for (i = 0; i < rxdatalen; i++) {
-      snprintf(mybuffer, sizeof(mybuffer), "0x%02x, ", rxdata[i]);
-      Serial.print(mybuffer);
-      if ((i != 0) && (i % 32 == 31)) Serial.println();
-    }
-    if (i % 32 != 0) Serial.println();
+    dump_hex_bytes(payload, length);
+  }
+
+  if (length <= RXDATA_BUFSIZE) {
+    memcpy(rxdata, payload, length);
+    rxdatalen = length;    
+  }
+  else {
+    Serial.println("rxdata buffer too small for holding payload... message discarded!");
+    rxdatalen = 0;
   }
 }
 
@@ -134,7 +134,8 @@ void setup()
   // to flash the LED, and restore it afterwards
 
   //setup I2C
-  Wire.begin();
+  Wire.begin(PIN_I2C_SDA, PIN_I2C_SCL);
+  Wire.setClock(400000);
 
   //setup SPI master
   //  pinMode(PIN_SPI_SCLK, OUTPUT);
@@ -254,8 +255,8 @@ void loop() {
   //STEP 1: process new messages
   client.loop();
   if (DEBUG_FAKE_MSG && toggle_flag) {
-    mqtt_callback("Prova", (byte *) "\x68\xFF\x01", 3);
-    //mqtt_callback("Prova", (byte *) "\x63\x21\x12""defghijklmnopqrstuvwxyz789012\xB7\xF9", 34);
+    //mqtt_callback("Prova", (byte *) "\x68\xFF\x01", 3);
+    mqtt_callback("Prova", (byte *) "\x63\x21\x12""defghijklmnopqrstuvwxyz789012\xB7\xF9""\x63\x21\x12""defghijklmnopqrstuvwxyz789012\xB7\xF9""\x63\x21\x12""defghijklmnopqrstuvwxyz789012\xB7\xF9", 3*34);
     //mqtt_callback("Prova", (byte *) "\x63\xFF\xFF""defghijklmnopqrstuvwxyz789012\xB7\xF9", 34);
     //mqtt_callback("Prova", (byte *) "\x05\x21\x17\x09\x30\x16\x45\x02", 8);
   }
@@ -282,16 +283,6 @@ void loop() {
       Serial.println(mybuffer);
     }
     else if (rxdata[0] == MSG_ID_CONFIG) {
-      if (!client.connected()) {
-        // reconnect to server mqtt
-        mqtt_reconnect("WemosClient", config_data.MQTT_user, config_data.MQTT_pwd); //tutte le Wemos hanno lo stesso id?
-      }
-      //unsubscribe remote client topics
-      client.unsubscribe("/requestHello");
-      client.unsubscribe("/config");
-      client.unsubscribe("/datetime");
-      Serial.println("Unsubscribed from topics /requestHello, /config, and /datetime");
-
       //store config_data in EEPROM
       aconfig_data = &rxdata[2]; //aconfig_data is not an alias of config_data anymore
       if (rxdata[1] == 0xFF) {
@@ -299,9 +290,22 @@ void loop() {
         //if broadcast msg received, reprogram the board with its own board_id
       }
       bool b = program_eeprom(aconfig_data);
+
+      if (!client.connected()) {
+        // reconnect to server mqtt
+        mqtt_reconnect("WemosClient", config_data.MQTT_user, config_data.MQTT_pwd); //tutte le Wemos hanno lo stesso id?
+      }      
       snprintf(mybuffer, sizeof(mybuffer), "wemos_%u_%u_%u", aconfig_data[2], aconfig_data[3], b); //cambiare
       client.publish("wemos0/answer", mybuffer); //cambiare
       Serial.println("Sent programming result to broker");
+
+      //unsubscribe remote client topics
+      client.unsubscribe("/requestHello");
+      client.unsubscribe("/config");
+      client.unsubscribe("/datetime");
+      client.unsubscribe("/answer");
+      Serial.println("Unsubscribed from topics /requestHello, /config, and /datetime");
+      
       Serial.println("Trying to reset the board...");
       ESP.restart();
     }

@@ -414,3 +414,28 @@ unsigned int buildIPport(byte hi, byte lo) {
   return (((unsigned int) hi << 8) + lo);
 }
 
+//*****************************************************************************
+//show hex bytes, 16 in a row
+void dump_hex_bytes(byte *data, int datalen) {
+    int i;
+    int min_length;
+    char mybuffer[256]; //a buffer to build formatted strings
+
+    Serial.println("Dumping hex bytes");
+    int l = sizeof(mybuffer);
+    if (l < datalen) {
+      Serial.println("buffer truncated at 256 bytes...");
+      min_length = l;
+    }
+    else {
+      min_length = datalen; 
+    }
+    
+    for (i = 0; i < min_length; i++) {
+      snprintf(mybuffer, sizeof(mybuffer), "0x%02x, ", data[i]);
+      Serial.print(mybuffer);
+      if (i % 16 == 15) Serial.println();
+    }
+    if (i % 15 != 0) Serial.println();
+}
+

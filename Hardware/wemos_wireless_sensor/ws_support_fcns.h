@@ -9,9 +9,9 @@
 //operating mode
 #define PROGRAM_EEPROM 0
 #define DEBUG_FAKE_EEPROM 0
-#define DEBUG_FAKE_BROKER 0
-#define DEBUG_FAKE_MSG 0
-#define VERBOSE 0
+#define DEBUG_FAKE_BROKER 1
+#define DEBUG_FAKE_MSG 1
+#define VERBOSE 1
 #define PARTIAL_EXEC_TIME 0
 #define TLOOP_US 1000000
 //at least 333333 for board_type=0xF0
@@ -177,6 +177,7 @@ void splitIPaddress(char *ipstr, byte *addr3, byte *addr2, byte *addr1, byte *ad
 void buildIPaddress(char *ipstr, byte addr3, byte addr2, byte addr1, byte addr0);
 void splitIPport(unsigned int port, byte *hi, byte *lo);
 unsigned int buildIPport(byte hi, byte lo);
+void dump_hex_bytes(byte *mybuffer, int mybufferlen);
 
 static_assert(CONFIG_DATA_LEN <= EEPROM_SIZE,
       "EEPROM size is too small. Can't compile.");
