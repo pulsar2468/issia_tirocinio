@@ -9,9 +9,9 @@
 //operating mode
 #define PROGRAM_EEPROM 0
 #define DEBUG_FAKE_EEPROM 0
-#define DEBUG_FAKE_BROKER 1
-#define DEBUG_FAKE_MSG 1
-#define VERBOSE 1
+#define DEBUG_FAKE_BROKER 0
+#define DEBUG_FAKE_MSG 0
+#define VERBOSE 0
 #define PARTIAL_EXEC_TIME 0
 #define TLOOP_US 1000000
 //at least 333333 for board_type=0xF0
@@ -46,6 +46,23 @@
 #define ADC_CALIB_GAIN 1.0625
 //#define ADC_CALIB_GAIN 1
 
+//topics on which msgs will be published:
+//hello
+//data
+//overrun
+
+//topics to be subscribed:
+#define SUBSCRIBE_TOPICS \
+    client.subscribe("/requestHello"); \
+    client.subscribe("/config"); \
+    client.subscribe("/datetime"); \
+    client.subscribe("/answers");
+
+#define UNSUBSCRIBE_TOPICS \    
+    client.unsubscribe("/requestHello"); \
+    client.unsubscribe("/config"); \
+    client.unsubscribe("/datetime"); \
+    client.unsubscribe("/answers");
 
 //type definitions:
 //signal values, i.e., either 8 raw measured data
@@ -79,6 +96,7 @@ struct {
 struct {
   byte msg_id = MSG_ID_CONFIG
   byte current_board_id or 0xFF for broadcast;
+  ---
   byte new board_id
   byte board_type;
   byte MQTT_IPaddr_3; 
@@ -104,13 +122,8 @@ struct {
 #define CONFIG_DATA_STR_SIZE 30
 #define CONFIG_DATA_STR_NUM 4
 #define CONFIG_DATA_LEN (CONFIG_DATA_STR_START_IDX + CONFIG_DATA_STR_NUM * CONFIG_DATA_STR_SIZE)
-#define RXDATA_BUFSIZE (CONFIG_DATA_LEN + 3)
+#define RXDATA_BUFSIZE (CONFIG_DATA_LEN + 2)
 //pay attention to byte alignment
-/*
-  byte msg_id = MSG_ID_CONFIG
-  byte board_id = current_board_id or 0xFF for broadcast
-  other bytes as following
-*/
 struct config_data_t {
   byte board_id;
   byte board_type;
@@ -173,7 +186,7 @@ String rtcDate(void);
 String rtcTime(void);
 void timestamp(void);
 void print_elapsed_time(String msg, unsigned long start_time_us, unsigned long stop_time_us);
-void splitIPaddress(char *ipstr, byte *addr3, byte *addr2, byte *addr1, byte *addr0);
+void splitIPaddress(const char *ipstr, byte *addr3, byte *addr2, byte *addr1, byte *addr0);
 void buildIPaddress(char *ipstr, byte addr3, byte addr2, byte addr1, byte addr0);
 void splitIPport(unsigned int port, byte *hi, byte *lo);
 unsigned int buildIPport(byte hi, byte lo);

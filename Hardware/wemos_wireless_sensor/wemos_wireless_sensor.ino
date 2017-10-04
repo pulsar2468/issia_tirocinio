@@ -56,10 +56,10 @@ void mqtt_callback(char* topic, byte* payload, unsigned int length) {
   
   Serial.print("msg received on topic ");
   Serial.println(topic);
-  Serial.print("la lunghezza del payload è: "); //togliere
-  Serial.println(length); //togliere
 
   if (VERBOSE) {
+    Serial.print("payload length is ");
+    Serial.println(length);
     dump_hex_bytes(payload, length);
   }
 
@@ -99,13 +99,11 @@ void mqtt_reconnect(char *clientID, char *username, char *pwd) {  // check 1st d
     Serial.print("Attempting MQTT connection... ");
     if ((DEBUG_FAKE_BROKER) || client.connect(clientID, username, pwd)) {
       Serial.println("connected");
-      client.subscribe("/requestHello");
-      client.subscribe("/config");
-      client.subscribe("/datetime");
+      SUBSCRIBE_TOPICS
+      Serial.println("topics subscribed");
       return;
     }
     else {
-      Serial.println(username); //???
       Serial.print("failed, rc=");
       Serial.print(client.state());
       Serial.println(" Will try again in 5 seconds");
@@ -138,9 +136,6 @@ void setup()
   Wire.setClock(400000);
 
   //setup SPI master
-  //  pinMode(PIN_SPI_SCLK, OUTPUT);
-  //  pinMode(PIN_SPI_MISO, INPUT);
-  //  pinMode(PIN_SPI_MOSI, OUTPUT);
   pinMode(PIN_SPI_SSn, OUTPUT);
   SPI.begin();
 
@@ -150,7 +145,7 @@ void setup()
     //fill fixed-size config_data fields
     config_data.board_id = default_board_id;
     config_data.board_type = default_board_type;
-    splitIPaddress((char *) default_mqtt_addr, &config_data.MQTT_IPaddr_3, &config_data.MQTT_IPaddr_2,
+    splitIPaddress(default_mqtt_addr, &config_data.MQTT_IPaddr_3, &config_data.MQTT_IPaddr_2,
                    &config_data.MQTT_IPaddr_1, &config_data.MQTT_IPaddr_0);
     splitIPport(default_mqtt_port, &config_data.MQTT_port_1, &config_data.MQTT_port_0);
 
@@ -185,7 +180,8 @@ void setup()
   //if we only want to program the eeprom...
   if (PROGRAM_EEPROM) {
     bool b = program_eeprom(aconfig_data);
-    Serial.println("Please reset the board...");
+    Serial.println("Please set #define PROGRAM_EEPROM 0");
+    Serial.println("and flash again the board...");
     if (b) {
       toggle_confirmation_led(PIN_LED); // do not return
     }
@@ -213,7 +209,7 @@ void setup()
 
   //print all credentials
   if (VERBOSE) {
-    snprintf(mybuffer, sizeof(mybuffer), "SSID: %s, pwd: %s, Broker addr: %s, port: %u, user: %s, pwd: %s",
+    snprintf(mybuffer, sizeof(mybuffer), "SSID: %s, pwd: %s, broker addr: %s, port: %u, user: %s, pwd: %s",
              config_data.WiFi_SSID, config_data.WiFi_pwd,
              mqtt_addr, mqtt_port, config_data.MQTT_user, config_data.MQTT_pwd);
     Serial.println(mybuffer);
@@ -227,13 +223,13 @@ void setup()
   client.setServer(mqtt_addr, mqtt_port);
   client.setCallback(mqtt_callback);
 
-  //connect to broker
+  //connect to broker and subscribe to config manager's topic
   mqtt_reconnect("WemosClient", config_data.MQTT_user, config_data.MQTT_pwd); //tutte le Wemos hanno lo stesso id?
 
-  //send welcome msg and subscribe to config manager's topic
+  //send hello msg 
   snprintf(mybuffer, sizeof(mybuffer), "wemos_%u_%u", config_data.board_id, config_data.board_type);
   client.publish("/hello", mybuffer); //topic, payload
-  Serial.print("Welcome message sent: ");
+  Serial.print("Hello message sent: ");
   Serial.println(mybuffer);
 
   if (VERBOSE) Serial.println("setup completed");
@@ -253,24 +249,25 @@ void loop() {
   initial_time_us = micros();
 
   //STEP 1: process new messages
+  start_time_us = micros();
   client.loop();
   if (DEBUG_FAKE_MSG && toggle_flag) {
-    //mqtt_callback("Prova", (byte *) "\x68\xFF\x01", 3);
-    mqtt_callback("Prova", (byte *) "\x63\x21\x12""defghijklmnopqrstuvwxyz789012\xB7\xF9""\x63\x21\x12""defghijklmnopqrstuvwxyz789012\xB7\xF9""\x63\x21\x12""defghijklmnopqrstuvwxyz789012\xB7\xF9", 3*34);
+    //sample messages
+    mqtt_callback("Prova", (byte *) "\x68\xFF\x00", 3);
+    //mqtt_callback("Prova", (byte *) "\x63\x21\x12""defghijklmnopqrstuvwxyz789012\xB7\xF9", 34);
     //mqtt_callback("Prova", (byte *) "\x63\xFF\xFF""defghijklmnopqrstuvwxyz789012\xB7\xF9", 34);
     //mqtt_callback("Prova", (byte *) "\x05\x21\x17\x09\x30\x16\x45\x02", 8);
   }
 
   if ((rxdatalen != 0) && ((rxdata[1] == 0xFF) || (rxdata[1] == config_data.board_id))) {
     // if msg arrived and it is for this wemos or a broadcast msg
-    start_time_us = micros();
     if (rxdata[0] == MSG_ID_WHO_ARE_YOU) {
       if (rxdata[2] == 0) {
-        //short answer
+        //short answer (verbose = 0x00)
         snprintf(mybuffer, sizeof(mybuffer), "wemos_%u_%u", config_data.board_id, config_data.board_type);
       }
       else {
-        //long answer
+        //long answer (verbose = 0x01)
         snprintf(mybuffer, sizeof(mybuffer), "wemos_%u_%u_%u", config_data.board_id, config_data.board_type, 0x01);
         //TODO: implement long answer
       }
@@ -279,14 +276,14 @@ void loop() {
         mqtt_reconnect("WemosClient", config_data.MQTT_user, config_data.MQTT_pwd); //tutte le Wemos hanno lo stesso id?
       }
       client.publish("/hello", mybuffer); //topic, payload
-      Serial.print("Welcome message sent: ");
+      Serial.print("Hello message sent: ");
       Serial.println(mybuffer);
     }
     else if (rxdata[0] == MSG_ID_CONFIG) {
       //store config_data in EEPROM
       aconfig_data = &rxdata[2]; //aconfig_data is not an alias of config_data anymore
       if (rxdata[1] == 0xFF) {
-        aconfig_data[2] = config_data.board_id;
+        aconfig_data[0] = config_data.board_id;
         //if broadcast msg received, reprogram the board with its own board_id
       }
       bool b = program_eeprom(aconfig_data);
@@ -295,22 +292,19 @@ void loop() {
         // reconnect to server mqtt
         mqtt_reconnect("WemosClient", config_data.MQTT_user, config_data.MQTT_pwd); //tutte le Wemos hanno lo stesso id?
       }      
-      snprintf(mybuffer, sizeof(mybuffer), "wemos_%u_%u_%u", aconfig_data[2], aconfig_data[3], b); //cambiare
-      client.publish("wemos0/answer", mybuffer); //cambiare
+      snprintf(mybuffer, sizeof(mybuffer), "wemos_%u_%u_%u", aconfig_data[0], aconfig_data[1], b);
+      client.publish("wemos0/answers", mybuffer);
       Serial.println("Sent programming result to broker");
 
       //unsubscribe remote client topics
-      client.unsubscribe("/requestHello");
-      client.unsubscribe("/config");
-      client.unsubscribe("/datetime");
-      client.unsubscribe("/answer");
-      Serial.println("Unsubscribed from topics /requestHello, /config, and /datetime");
-      
+      UNSUBSCRIBE_TOPICS
+      Serial.println("topics unsubscribed");
+
+      //alert user on console
       Serial.println("Trying to reset the board...");
       ESP.restart();
     }
     else if (rxdata[0] == MSG_ID_SETDATETIME) {
-      start_time_us = micros();
       //program RTCC
       WriteI2CByte(RTCC_ADDR, 0x00, 0x00);    //stop RTCC and reset seconds
       WriteI2CByte(RTCC_ADDR, 0x06, rxdata[2]);
@@ -322,25 +316,31 @@ void loop() {
       Serial.println("RTCC programmed");
       Serial.println("current date/time:");
       timestamp();
+
+      if (!client.connected()) {
+        // reconnect to server mqtt
+        mqtt_reconnect("WemosClient", config_data.MQTT_user, config_data.MQTT_pwd); //tutte le Wemos hanno lo stesso id?
+      }      
+      snprintf(mybuffer, sizeof(mybuffer), "wemos_%u_%u_%u", aconfig_data[0], aconfig_data[1], 1);
+      client.publish("wemos0/answers", mybuffer);
+      Serial.println("Sent confirmation of setdatetime to broker");      
     }
     else {
       snprintf(mybuffer, sizeof(mybuffer), "Unknown msg id 0x%02x!", rxdata[0]);
       Serial.println(mybuffer);
     }
-    stop_time_us = micros();
-    if (PARTIAL_EXEC_TIME)
-      print_elapsed_time("msg processing finished in ", start_time_us, stop_time_us);
   }
   rxdatalen = 0; // mark the msg as read
+  stop_time_us = micros();
+  if (PARTIAL_EXEC_TIME)
+    print_elapsed_time("msg processing finished in ", start_time_us, stop_time_us);  
 
   //STEP 2: acquire data from hw sensors
   //acquire analog channels
   if (config_data.board_type == 0xFE) {
     //acquire V and I and compute electrical quantities
     start_time_us = micros();
-    noInterrupts();
     acquire_and_process_v_and_i(&channels);
-    interrupts();
     stop_time_us = micros();
     if (PARTIAL_EXEC_TIME)
       print_elapsed_time("electrical acquisition finished in ", start_time_us, stop_time_us);
@@ -367,9 +367,7 @@ void loop() {
   else {
     //acquire raw analog signals
     start_time_us = micros();
-    noInterrupts();
     acquire_raw_analog_channels(&channels);
-    interrupts();
     stop_time_us = micros();
     if (PARTIAL_EXEC_TIME)
       print_elapsed_time("raw analog acquisition finished in ", start_time_us, stop_time_us);
@@ -394,7 +392,7 @@ void loop() {
     print_elapsed_time("1-Wire acquisition finished in ", start_time_us, stop_time_us);
   if (VERBOSE) {
     Serial.println("Temp. meas.:");
-    Serial.println(channels.ch_1wire, 3);
+    Serial.println(channels.ch_1wire, 2);
   }
   
   //acquire I2C data
@@ -403,11 +401,15 @@ void loop() {
   stop_time_us = micros();
   if (PARTIAL_EXEC_TIME)
     print_elapsed_time("I2C acquisition finished in ", start_time_us, stop_time_us);
-
+  if (VERBOSE) {
+    Serial.println("I2C meas.:");
+    Serial.println(channels.ch_i2c, 2);
+  }
+  
   //acquire SPI data
   start_time_us = micros();
-  channels.ch_spi = 0.0;  //TODO: to be defined
-  { // to be removed
+  channels.ch_spi = 123.456;  //TODO: to be defined
+  { //TODO: to be removed
     toggle_flag = !toggle_flag;
     if (toggle_flag) {
       WriteSPIByte(128);
@@ -419,7 +421,11 @@ void loop() {
   stop_time_us = micros();
   if (PARTIAL_EXEC_TIME)
     print_elapsed_time("SPI acquisition finished in ", start_time_us, stop_time_us);
-
+  if (VERBOSE) {
+    Serial.println("SPI meas.:");
+    Serial.println(channels.ch_spi, 3);
+  }
+  
   //STEP 3: retrieve timestamp and prepare data
   byte data;
 
@@ -458,23 +464,17 @@ void loop() {
     print_elapsed_time("data preparing finished in ", start_time_us, stop_time_us);
 
   if (VERBOSE) {
-    int i;
-    Serial.println("TXDATA:");
-    for (i = 0; i < TXDATA_LEN; i++) {
-      snprintf(mybuffer, sizeof(mybuffer), "0x%02x, ", atxdata[i]);
-      Serial.print(mybuffer);
-      if ((i != 0) && (i % 32 == 31)) Serial.println();
-    }
-    if (i % 32 != 0) Serial.println();
+    Serial.println("txdata buffer has been filled");
+    dump_hex_bytes(atxdata, TXDATA_LEN);
   }
 
-  //STEP 4: send TxData to broker
+  //STEP 4: send atxdata to broker
   start_time_us = micros();
   if (!client.connected()) {
     // reconnect to server mqtt
     mqtt_reconnect("WemosClient", config_data.MQTT_user, config_data.MQTT_pwd); //tutte le Wemos hanno lo stesso id?
   }
-  ESP.wdtEnable(0); // rivedere watchdog ed interrupts!
+  ESP.wdtEnable(0); //TODO: rivedere watchdog ed interrupts!
   noInterrupts();
   client.publish("wemos0/data", atxdata, TXDATA_LEN); // check topic
   interrupts();
@@ -499,9 +499,9 @@ void loop() {
     //publish overrun msg
     if (!client.connected()) {
       // reconnect to server mqtt
-      mqtt_reconnect("WemosClient", config_data.MQTT_user, config_data.MQTT_pwd);
+      mqtt_reconnect("WemosClient", config_data.MQTT_user, config_data.MQTT_pwd); //stesso id?
     }
-    snprintf(mybuffer, sizeof(mybuffer), "Wemos_%u: loop finished in %d us, i.e., longer than %d us",
+    snprintf(mybuffer, sizeof(mybuffer), "wemos_%u: loop finished in %d us, i.e., later than %d us",
         config_data.board_id, (stop_time_us - initial_time_us), TLOOP_US);
     client.publish("/overrun", mybuffer); //topic, payload
 

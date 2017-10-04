@@ -5,7 +5,6 @@
 #include <SPI.h>
 #include <Wire.h>
 
-
 //function implementations
 //
 bool program_eeprom(byte *aconfig_data) {
@@ -18,15 +17,8 @@ bool program_eeprom(byte *aconfig_data) {
     }
   }
   else {
-    Serial.println("Simulated EEPROM write:");
-    char mybuffer[200];
-    for (int offset = 0; offset < 16; offset++) {
-      for (int i = 0; i < 32; i++) {
-        snprintf(mybuffer, sizeof(mybuffer), "0x%02x, ", aconfig_data[offset * 32 + i]);
-        Serial.print(mybuffer);
-      }
-      Serial.println();
-    }
+    Serial.println("Simulated EEPROM write");
+    dump_hex_bytes(aconfig_data, CONFIG_DATA_LEN);
   }
   Serial.println("EEPROM programmed!");
 
@@ -192,6 +184,7 @@ void set_mux_ch(unsigned int ch) {
 //*****************************************************************************
 
 void acquire_raw_analog_channels(struct channels_t *channels) {
+  noInterrupts();
   set_mux_ch(0);
   delayMicroseconds(4);
   channels->ch_a0 = (float) analogRead(A0) * 3.2 * ADC_CALIB_GAIN / 1024;
@@ -223,6 +216,7 @@ void acquire_raw_analog_channels(struct channels_t *channels) {
   set_mux_ch(7);
   delayMicroseconds(4);
   channels->ch_a7 = (float) analogRead(A0) * 3.2 * ADC_CALIB_GAIN / 1024;
+  interrupts();  
 }
 
 //*****************************************************************************
@@ -241,6 +235,7 @@ void acquire_and_process_v_and_i(struct channels_t *channels) {
   float Vdc, Vrms, Idc, Irms, Pdc, P, A, T;
 
   //store NSAMPLES samples of V and I in buf0 and buf1
+  noInterrupts();
   for (int j = 0; j < NSAMPLES; j++) {
     set_mux_ch(0);
     delayMicroseconds(4);
@@ -249,6 +244,7 @@ void acquire_and_process_v_and_i(struct channels_t *channels) {
     delayMicroseconds(4);
     buf1[j] = analogRead(A0);
   }
+  interrupts();
 
   //scale values and compute power and sums
   for (int j = 0; j < NSAMPLES; j++) {
@@ -374,7 +370,6 @@ void timestamp(void) {
   Serial.print(rtcDate());
   Serial.print("  -  ");
   Serial.println(rtcTime());
-  delayMicroseconds(10);
 }
 
 //*****************************************************************************
@@ -383,12 +378,11 @@ void print_elapsed_time(String msg, unsigned long start_time_us, unsigned long s
   Serial.print(msg);
   Serial.print(stop_time_us - start_time_us);
   Serial.println(" us");
-  delayMicroseconds(10);
 }
 
 //*****************************************************************************
 
-void splitIPaddress(char *ipstr, byte *addr3, byte *addr2, byte *addr1, byte *addr0) {
+void splitIPaddress(const char *ipstr, byte *addr3, byte *addr2, byte *addr1, byte *addr0) {
   //TODO: split using regexpr
   *addr3 = 150;
   *addr2 = 145;
@@ -421,10 +415,10 @@ void dump_hex_bytes(byte *data, int datalen) {
     int min_length;
     char mybuffer[256]; //a buffer to build formatted strings
 
-    Serial.println("Dumping hex bytes");
+    Serial.println("dumping hex bytes");
     int l = sizeof(mybuffer);
     if (l < datalen) {
-      Serial.println("buffer truncated at 256 bytes...");
+      Serial.println("only the first 256 bytes will be shown...");
       min_length = l;
     }
     else {
