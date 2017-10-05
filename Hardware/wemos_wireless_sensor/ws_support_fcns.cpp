@@ -18,7 +18,7 @@ bool program_eeprom(byte *aconfig_data) {
   }
   else {
     Serial.println("Simulated EEPROM write");
-    dump_hex_bytes(aconfig_data, CONFIG_DATA_LEN);
+    //dump_hex_bytes(aconfig_data, CONFIG_DATA_LEN);
   }
   Serial.println("EEPROM programmed!");
 

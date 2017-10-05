@@ -218,7 +218,6 @@ void setup()
   //setup WiFi connection
   WiFi.mode(WIFI_STA); // only station, it doesn't initialize an AP!
   setup_wifi(config_data.WiFi_SSID, config_data.WiFi_pwd);
-
   //setup MQTT server
   client.setServer(mqtt_addr, mqtt_port);
   client.setCallback(mqtt_callback);
@@ -302,6 +301,7 @@ void loop() {
 
       //alert user on console
       Serial.println("Trying to reset the board...");
+      client.disconnect();
       ESP.restart();
     }
     else if (rxdata[0] == MSG_ID_SETDATETIME) {
@@ -465,7 +465,7 @@ void loop() {
 
   if (VERBOSE) {
     Serial.println("txdata buffer has been filled");
-    dump_hex_bytes(atxdata, TXDATA_LEN);
+    //dump_hex_bytes(atxdata, TXDATA_LEN);
   }
 
   //STEP 4: send atxdata to broker
