@@ -208,16 +208,16 @@ void setup()
   mqtt_port = buildIPport(config_data.MQTT_port_1, config_data.MQTT_port_0);
 
   //print all credentials
-  if (VERBOSE) {
-    snprintf(mybuffer, sizeof(mybuffer), "SSID: %s, pwd: %s, broker addr: %s, port: %u, user: %s, pwd: %s",
-             config_data.WiFi_SSID, config_data.WiFi_pwd,
-             mqtt_addr, mqtt_port, config_data.MQTT_user, config_data.MQTT_pwd);
-    Serial.println(mybuffer);
-  }
+  Serial.println();
+  snprintf(mybuffer, sizeof(mybuffer), "SSID: %s, pwd: %s, broker addr: %s, port: %u, user: %s, pwd: %s",
+           config_data.WiFi_SSID, config_data.WiFi_pwd,
+           mqtt_addr, mqtt_port, config_data.MQTT_user, config_data.MQTT_pwd);
+  Serial.println(mybuffer);
 
   //setup WiFi connection
   WiFi.mode(WIFI_STA); // only station, it doesn't initialize an AP!
   setup_wifi(config_data.WiFi_SSID, config_data.WiFi_pwd);
+  
   //setup MQTT server
   client.setServer(mqtt_addr, mqtt_port);
   client.setCallback(mqtt_callback);
@@ -465,7 +465,7 @@ void loop() {
 
   if (VERBOSE) {
     Serial.println("txdata buffer has been filled");
-    //dump_hex_bytes(atxdata, TXDATA_LEN);
+    dump_hex_bytes(atxdata, TXDATA_LEN);
   }
 
   //STEP 4: send atxdata to broker

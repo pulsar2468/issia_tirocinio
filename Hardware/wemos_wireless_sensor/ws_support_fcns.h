@@ -185,8 +185,10 @@ float compute_period(float *v, float *signs);
 String rtcDate(void);
 String rtcTime(void);
 void timestamp(void);
-void print_elapsed_time(String msg, unsigned long start_time_us, unsigned long stop_time_us);
-void splitIPaddress(const char *ipstr, byte *addr3, byte *addr2, byte *addr1, byte *addr0);
+void print_elapsed_time(String msg, unsigned long start_time_us,
+                    unsigned long stop_time_us);
+void splitIPaddress(const char *ipstr, byte *addr3, byte *addr2,
+                    byte *addr1, byte *addr0);
 void buildIPaddress(char *ipstr, byte addr3, byte addr2, byte addr1, byte addr0);
 void splitIPport(unsigned int port, byte *hi, byte *lo);
 unsigned int buildIPport(byte hi, byte lo);

@@ -18,7 +18,7 @@ bool program_eeprom(byte *aconfig_data) {
   }
   else {
     Serial.println("Simulated EEPROM write");
-    //dump_hex_bytes(aconfig_data, CONFIG_DATA_LEN);
+    dump_hex_bytes(aconfig_data, CONFIG_DATA_LEN);
   }
   Serial.println("EEPROM programmed!");
 
@@ -216,7 +216,7 @@ void acquire_raw_analog_channels(struct channels_t *channels) {
   set_mux_ch(7);
   delayMicroseconds(4);
   channels->ch_a7 = (float) analogRead(A0) * 3.2 * ADC_CALIB_GAIN / 1024;
-  interrupts();  
+  interrupts();
 }
 
 //*****************************************************************************
@@ -296,7 +296,7 @@ float compute_period(float *v, float *signs) {
   float id[2] = {0, 0};
 
   for (int i = 0; i < NSAMPLES; i++) {
-    signs[i] = (v[i] > -(0.05*3.2/100) ? 1.0 : 0.0); //discard small noise below zero
+    signs[i] = (v[i] > -(0.05 * 3.2 / 100) ? 1.0 : 0.0); //discard small noise below zero
   }
 
   for (int i = 0; i < NSAMPLES - 1; i++) {
@@ -374,7 +374,8 @@ void timestamp(void) {
 
 //*****************************************************************************
 
-void print_elapsed_time(String msg, unsigned long start_time_us, unsigned long stop_time_us) {
+void print_elapsed_time(String msg, unsigned long start_time_us,
+                        unsigned long stop_time_us) {
   Serial.print(msg);
   Serial.print(stop_time_us - start_time_us);
   Serial.println(" us");
@@ -382,12 +383,44 @@ void print_elapsed_time(String msg, unsigned long start_time_us, unsigned long s
 
 //*****************************************************************************
 
-void splitIPaddress(const char *ipstr, byte *addr3, byte *addr2, byte *addr1, byte *addr0) {
-  //TODO: split using regexpr
-  *addr3 = 150;
-  *addr2 = 145;
-  *addr1 = 127;
-  *addr0 = 37;
+void splitIPaddress(const char *ipstr, byte *addr3, byte *addr2,
+                    byte *addr1, byte *addr0) {
+  char *pchr;
+  int count = 3;
+
+  while (count >= 0)
+  {
+    if (count == 3)
+      pchr = strtok((char *)ipstr, ".");
+    else
+      pchr = strtok(NULL, ".");
+
+    if (pchr == NULL)
+    {
+      //insufficient number of dots inside string
+      *addr3 = 0;
+      *addr2 = 0;
+      *addr1 = 0;
+      *addr0 = 0;
+      return;
+    }
+    switch (count)
+    {
+      case 3:
+        *addr3 = atoi(pchr);
+        break;
+      case 2:
+        *addr2 = atoi(pchr);
+        break;
+      case 1:
+        *addr1 = atoi(pchr);
+        break;
+      case 0:
+        *addr0 = atoi(pchr);
+        break;
+    }
+    count--;
+  }
 }
 
 //*****************************************************************************
@@ -411,25 +444,25 @@ unsigned int buildIPport(byte hi, byte lo) {
 //*****************************************************************************
 //show hex bytes, 16 in a row
 void dump_hex_bytes(byte *data, int datalen) {
-    int i;
-    int min_length;
-    char mybuffer[256]; //a buffer to build formatted strings
+  int i;
+  int min_length;
+  char mybuffer[256]; //a buffer to build formatted strings
 
-    Serial.println("dumping hex bytes");
-    int l = sizeof(mybuffer);
-    if (l < datalen) {
-      Serial.println("only the first 256 bytes will be shown...");
-      min_length = l;
-    }
-    else {
-      min_length = datalen; 
-    }
-    
-    for (i = 0; i < min_length; i++) {
-      snprintf(mybuffer, sizeof(mybuffer), "0x%02x, ", data[i]);
-      Serial.print(mybuffer);
-      if (i % 16 == 15) Serial.println();
-    }
-    if (i % 15 != 0) Serial.println();
+  Serial.println("dumping hex bytes");
+  int l = sizeof(mybuffer);
+  if (l < datalen) {
+    Serial.println("only the first 256 bytes will be shown...");
+    min_length = l;
+  }
+  else {
+    min_length = datalen;
+  }
+
+  for (i = 0; i < min_length; i++) {
+    snprintf(mybuffer, sizeof(mybuffer), "0x%02x, ", data[i]);
+    Serial.print(mybuffer);
+    if (i % 16 == 15) Serial.println();
+  }
+  if (i % 15 != 0) Serial.println();
 }
 
