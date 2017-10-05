@@ -183,7 +183,7 @@ boolean PubSubClient::connect(const char *id, const char *user, const char *pass
                     return false;
                 }
             }
-            uint8_t llen;
+            uint16_t llen;
             uint16_t len = readPacket(&llen);
 
             if (len == 4) {
@@ -229,7 +229,7 @@ boolean PubSubClient::readByte(uint8_t * result, uint16_t * index){
   return false;
 }
 
-uint16_t PubSubClient::readPacket(uint8_t* lengthLength) {
+uint16_t PubSubClient::readPacket(uint16_t* lengthLength) {
     uint16_t len = 0;
     if(!readByte(buffer, &len)) return 0;
     bool isPublish = (buffer[0]&0xF0) == MQTTPUBLISH;
@@ -297,7 +297,7 @@ boolean PubSubClient::loop() {
             }
         }
         if (_client->available()) {
-            uint8_t llen;
+            uint16_t llen;
             uint16_t len = readPacket(&llen);
             uint16_t msgId = 0;
             uint8_t *payload;
