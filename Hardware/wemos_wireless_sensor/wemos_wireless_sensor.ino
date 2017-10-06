@@ -1,7 +1,7 @@
 #include "ws_support_fcns.h"
 #include <assert.h>
 #include <ESP8266WiFi.h>
-#include <PubSubClient.h>
+#include "PubSubClient.h"
 #include <SPI.h>
 #include <Wire.h>
 #include "DHT.h"
@@ -21,7 +21,7 @@ static const char* const default_wifi_ssid = "issia1";
 static const char* const default_wifi_pwd = "router!?wireless";
 
 //default broker credentials
-static const char default_mqtt_addr[16] = "150.145.127.37";
+static const char default_mqtt_addr[16] = "150.145.127.45";
 static const unsigned int default_mqtt_port = 8883;
 static const char* const default_mqtt_user = "issia";
 static const char* const default_mqtt_pwd = "cnr";
@@ -99,7 +99,7 @@ void mqtt_reconnect(char *clientID, char *username, char *pwd) {  // check 1st d
     Serial.print("Attempting MQTT connection... ");
     if ((DEBUG_FAKE_BROKER) || client.connect(clientID, username, pwd)) {
       Serial.println("connected");
-      SUBSCRIBE_TOPICS
+      subscribe_topics(client);
       Serial.println("topics subscribed");
       return;
     }
@@ -296,7 +296,7 @@ void loop() {
       Serial.println("Sent programming result to broker");
 
       //unsubscribe remote client topics
-      UNSUBSCRIBE_TOPICS
+      unsubscribe_topics(client);
       Serial.println("topics unsubscribed");
 
       //alert user on console

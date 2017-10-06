@@ -5,6 +5,7 @@
 
 #include <Arduino.h>
 #include <assert.h>
+#include "PubSubClient.h"
 
 //operating mode
 #define PROGRAM_EEPROM 0
@@ -13,7 +14,7 @@
 #define DEBUG_FAKE_MSG 0
 #define VERBOSE 0
 #define PARTIAL_EXEC_TIME 0
-#define TLOOP_US 1000000
+#define TLOOP_US 2000000
 //at least 333333 for board_type=0xF0
 //at least 500000 for board_type=0xFE
 //publishing the msg requires up to 5 seconds
@@ -51,18 +52,11 @@
 //data
 //overrun
 
-//topics to be subscribed:
-#define SUBSCRIBE_TOPICS \
-    client.subscribe("/requestHello"); \
-    client.subscribe("/config"); \
-    client.subscribe("/datetime"); \
-    client.subscribe("/answers");
-
-#define UNSUBSCRIBE_TOPICS \    
-    client.unsubscribe("/requestHello"); \
-    client.unsubscribe("/config"); \
-    client.unsubscribe("/datetime"); \
-    client.unsubscribe("/answers");
+//topics to be subscribed from wemos board:
+//requestHello
+//config
+//datetime
+//answers
 
 //type definitions:
 //signal values, i.e., either 8 raw measured data
@@ -193,6 +187,8 @@ void buildIPaddress(char *ipstr, byte addr3, byte addr2, byte addr1, byte addr0)
 void splitIPport(unsigned int port, byte *hi, byte *lo);
 unsigned int buildIPport(byte hi, byte lo);
 void dump_hex_bytes(byte *mybuffer, int mybufferlen);
+void subscribe_topics(PubSubClient client);
+void unsubscribe_topics(PubSubClient client);
 
 static_assert(CONFIG_DATA_LEN <= EEPROM_SIZE,
       "EEPROM size is too small. Can't compile.");
