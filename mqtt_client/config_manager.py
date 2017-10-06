@@ -55,49 +55,46 @@ all_wemos_response=False
 
 
 if (re.search('[yes|y|Y|Yes|YES]',reply)):
-        reply1=raw_input('Datetime or general config? d/c')
-        client = paho.Client()
-        client.username_pw_set("issia", "cnr")
-        
-	client.connect("150.145.127.45", 8883)
-        client.subscribe("+/answers",qos=0)
-        client.message_callback_add("+/answers", answer)
-        
-	if (re.search('[d|D|Datetime|datetime|DATETIME]',reply1)):
+    reply1=raw_input('Datetime or general config? d/c')
+    client = paho.Client()
+    client.username_pw_set("issia", "cnr")
 
-            date=(datetime.datetime.now())
-            #datetime.datetime.strftime(date,"%y-%m-%d %H:%M:%S")
-            year,month,day,hour,minute,second=decimalToBCD(date)
-            #print(year,month,day,hour,minute,second)
+    client.connect("150.145.127.45", 8883)
+    client.subscribe("+/answers",qos=0)
+    client.message_callback_add("+/answers", answer)
 
-            x=struct.pack("cccccccc",chr(0x05),chr(0xFF),chr(year),chr(month),chr(day),
-                      chr(hour),chr(minute),chr(second)) #data reprogramming
-            client.publish("/config" ,x, 0)
+    if (re.search('[d|D|Datetime|datetime|DATETIME]',reply1)):
+        date=(datetime.datetime.now())
+        #datetime.datetime.strftime(date,"%y-%m-%d %H:%M:%S")
+        year,month,day,hour,minute,second=decimalToBCD(date)
+        #print(year,month,day,hour,minute,second)
 
-        if (re.search('[c|C|Config|CONFIG]',reply1)):
-            user="issia"
-            passw="cnr"
-            ssid="test1"
-            wifi_passw="magic"
-            y=struct.pack("!I", 8883)
-            a,b, port_hi, port_lo = struct.unpack("!cccc", y)
-            x=struct.pack("cccccccccc30s30s30s30s",chr(0x63),chr(0xFF),chr(0x21),chr(0xFE),chr(150),
-                         chr(145),chr(127),chr(37),port_hi,port_lo,user,passw,ssid,wifi_passw) #data reprogramming
+        x=struct.pack("cccccccc",chr(0x05),chr(0xFF),chr(year),chr(month),chr(day),
+                  chr(hour),chr(minute),chr(second)) #data reprogramming
+        client.publish("/datetime" ,x, 0)
 
-            client.publish("/config" ,x,0)
-        client.loop_start()
+    if (re.search('[c|C|Config|CONFIG]',reply1)):
+        user="issia"
+        passw="cnr"
+        ssid="issia1"
+        wifi_passw="router!?wireless"
+        port = 8883
+        x=struct.pack("!ccccccccH30s30s30s30s",chr(0x63),chr(0xFF),chr(0x21),chr(0xFE),chr(150),
+                     chr(145),chr(127),chr(45),port,user,passw,ssid,wifi_passw) #data reprogramming
+        client.publish("/config" ,x,0)
 
+    client.loop_start()
 
-        #client.loop_start()
-        start=time.time()
-        #loop until as all wemos response or i receive a timeout, in this way i prevent the wemos damaged
-        while not(all_wemos_response) and (time.time() - start < 10.0):
-           # print("I'm waiting that all wemos response that all ok")
-            pass
-        client.loop_stop()
-        client.disconnect()
-        all_wemos_response=False
-        flag=True #i verify if the data has been send to boards
+    #client.loop_start()
+    start=time.time()
+    #loop until as all wemos response or i receive a timeout, in this way i prevent the wemos damaged
+    while not(all_wemos_response) and (time.time() - start < 10.0):
+       # print("I'm waiting that all wemos response that all ok")
+        pass
+    client.loop_stop()
+    client.disconnect()
+    all_wemos_response=False
+    flag=True #i verify if the data has been send to boards
 
 
 if (re.search('[no|N|n|No|NO]',reply) or flag):
