@@ -63,7 +63,7 @@ def store_data(client, userdata, msg):
 print("Store_it module active")
 client = paho.Client()
 client.username_pw_set("issia", "cnr")
-client.connect("150.145.127.37", 8883)
+client.connect("150.145.127.45", 8883)
 import struct
 x=struct.pack("ccc",chr(0x68),chr(0xFF),chr(0x00))
 client.publish("/requestHello",x,0)
@@ -74,7 +74,7 @@ client.disconnect()
     #Initialized and starting new client for multiple subscribe
 client = paho.Client()
 client.username_pw_set("issia", "cnr")
-client.connect("150.145.127.37", 8883)
+client.connect("150.145.127.45", 8883)
 client.subscribe("+/data", qos=0)
 client.subscribe("/hello", qos=0)
 client.message_callback_add("+/data", store_data)

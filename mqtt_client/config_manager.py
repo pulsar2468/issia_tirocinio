@@ -58,10 +58,12 @@ if (re.search('[yes|y|Y|Yes|YES]',reply)):
         reply1=raw_input('Datetime or general config? d/c')
         client = paho.Client()
         client.username_pw_set("issia", "cnr")
-        client.connect("150.145.127.37", 8883)
+        
+	client.connect("150.145.127.45", 8883)
         client.subscribe("+/answers",qos=0)
         client.message_callback_add("+/answers", answer)
-        if (re.search('[d|D|Datetime|datetime|DATETIME]',reply1)):
+        
+	if (re.search('[d|D|Datetime|datetime|DATETIME]',reply1)):
 
             date=(datetime.datetime.now())
             #datetime.datetime.strftime(date,"%y-%m-%d %H:%M:%S")
