@@ -2,6 +2,7 @@
 
 #include "ws_support_fcns.h"
 #include <Arduino.h>
+#include "PubSubClient.h"
 #include <SPI.h>
 #include <Wire.h>
 
@@ -464,5 +465,23 @@ void dump_hex_bytes(byte *data, int datalen) {
     if (i % 16 == 15) Serial.println();
   }
   if (i % 15 != 0) Serial.println();
+}
+
+//*****************************************************************************
+
+void subscribe_topics(PubSubClient client) {
+    client.subscribe("/requestHello");
+    client.subscribe("/config");
+    client.subscribe("/datetime");
+    client.subscribe("/answers");
+}
+
+//*****************************************************************************
+
+void unsubscribe_topics(PubSubClient client) {
+    client.unsubscribe("/requestHello");
+    client.unsubscribe("/config");
+    client.unsubscribe("/datetime");
+    client.unsubscribe("/answers");
 }
 
