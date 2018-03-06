@@ -167,3 +167,11 @@ client.subscribe("+/hello", qos=0)
 client.message_callback_add("+/data", store_data)
 client.message_callback_add("+/hello", welcome)
 client.loop_forever()
+
+try:
+    client.loop_forever()
+except KeyboardInterrupt:
+    print("Disconnecting...")
+    client.disconnect()
+    time.sleep(2.0)
+    print("Exiting.")
