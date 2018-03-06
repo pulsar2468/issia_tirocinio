@@ -32,9 +32,10 @@ def decimalToBCD(date):
 
     return c_year,c_month,c_day,c_hour,c_minute,c_second
 
+global all_wemos_response
+
 
 def answer(client, userdata, msg):
-    global all_wemos_response
     global package
     package = 0
     name_board=(msg.topic).split('/', 1)[0]
@@ -49,13 +50,13 @@ def answer(client, userdata, msg):
 
 
 
-reply=raw_input('Do you want programming? y/n')
+reply=raw_input('Do you want programming [y/n]? ')
 flag=False
 all_wemos_response=False
 
 
 if (re.search('[yes|y|Y|Yes|YES]',reply)):
-    reply1=raw_input('Datetime or general config? d/c')
+    reply1=raw_input('Datetime or general config [d/c]? ')
     client = paho.Client()
     client.username_pw_set("issia", "cnr")
 
