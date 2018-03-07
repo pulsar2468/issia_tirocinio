@@ -71,7 +71,7 @@ def store_data(client, userdata, msg):
     #buffer_b = bytearray(msg.payload[9:53])
     (Vdc, Vrms, Idc, Irms, Pdc, P, A, T, wire, i2c, spi) = struct.unpack_from("!fffffffffff", buffer_b, 9)
 
-    fmtString = "{:.2f}\t" * 11
+    fmtString = "{:.2f}\t" * 7 + "{:.4f}\t" + "{:.2f}\t" * 3
     print("{} id: {} type: 0x{:0x} -- {}".format(board_name, board_id, board_type, date))
     print(fmtString.format(Vdc, Vrms, Idc, Irms, Pdc, P, A, T, wire, i2c, spi))
 
