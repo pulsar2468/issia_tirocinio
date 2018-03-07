@@ -42,7 +42,7 @@ def hello(client, userdata, msg):
 
     board_list.append(msg.topic)
 
-    print("Hello client, this is ", board_name, " Answer: ", msg.payload)
+    print("Hello client, this is {} Answer: {}".format(board_name, msg.payload))
 
 
 

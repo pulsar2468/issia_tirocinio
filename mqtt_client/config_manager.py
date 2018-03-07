@@ -41,7 +41,7 @@ def answer(client, userdata, msg):
     name_board=(msg.topic).split('/', 1)[0]
     #board_list=[]
     #board_list.append(msg.payload)
-    print("Wemos: ",name_board,"Answer: ", msg.payload)
+    print("Wemos: {} Answer: {}".format(name_board, msg.payload))
     package=package+1
     if (package == 1):
         all_wemos_response=True
